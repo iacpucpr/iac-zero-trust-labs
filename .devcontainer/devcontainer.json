@@ -1,0 +1,15 @@
+{
+  "name": "IaC Zero Trust Dev",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "context": "..",
+  "settings": {
+    "terminal.integrated.shell.linux": "/bin/bash"
+  },
+  "postCreateCommand": "git config --global user.name 'Aluno' && git config --global user.email 'aluno@example.com'",
+  "mounts": [
+    "source=${localWorkspaceFolder},target=/home/devuser/workspace,type=bind"
+  ],
+  "remoteUser": "devuser"
+}
