@@ -32,4 +32,9 @@ Confiure a senha e o OTP.
 
 Pronto, agora é so seguir com as demais configurações.
 
+Possível integração com o Ggithub para autenticar usuários:
+https://goteleport.com/docs/admin-guides/management/guides/github-integration/
+
+
+
 
