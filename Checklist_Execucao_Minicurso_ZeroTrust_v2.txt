@@ -1,0 +1,49 @@
+
+CHECKLIST DE EXECUÇÃO – MINICURSO ZERO TRUST & IAC
+
+✅ PRÉ-REQUISITOS:
+- Docker e Docker Compose instalados
+- Terraform instalado (obrigatório)
+
+-----------------------------------------------
+🔐 LAB 1 – Autenticação e Cofre de Segredos
+-----------------------------------------------
+1. Acesse o diretório:
+   cd labs/lab1_credenciais
+
+2. Copie e configure o arquivo .env:
+   cp .env.example .env
+
+3. Execute o playbook Ansible:
+   cd ansible
+   ansible-playbook playbook.yml
+
+4. Verifique se os serviços estão ativos:
+   docker ps
+
+-----------------------------------------------
+🌐 LAB 2 – Segmentação com Keycloak, Guacamole e GLPI
+-----------------------------------------------
+1. Acesse o diretório do Terraform:
+   cd labs/lab2_rede/terraform
+   terraform init && terraform apply
+
+2. Suba os serviços do GLPI:
+   cd ../glpi_mariadb
+   docker-compose up -d
+
+3. Verifique os serviços:
+   docker ps
+
+4. Acesse:
+   - Keycloak: http://localhost:8081 (admin/admin)
+   - Guacamole: http://localhost:8082 (guacadmin/guacadmin)
+   - GLPI: http://localhost:8083 (glpi/glpi)
+
+-----------------------------------------------
+🧪 Testes sugeridos:
+- Acesso controlado via Guacamole
+- Login federado com Keycloak
+- Acesso a aplicação GLPI como ambiente legado
+
+Pronto!
