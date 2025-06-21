@@ -1,0 +1,36 @@
+# Arquivo de configuração principal do Teleport
+teleport:
+  # Diretório para armazenar dados de estado
+  data_dir: /var/lib/teleport
+  # Configuração de logging
+  log:
+    output: stderr
+    severity: INFO
+
+# Configuração do serviço de autenticação
+auth_service:
+  enabled: yes
+  listen_addr: 0.0.0.0:3025
+  # O nome do seu cluster.
+  cluster_name: "cluster-teleport"
+
+# Configuração do serviço de proxy
+proxy_service:
+  enabled: yes
+  # O endereço público deve apontar para a porta 443.
+  # Substitua 'teleport.local' pelo seu domínio real.
+  public_addr: teleport.local:443
+  
+  # O serviço web deve escutar na porta 443, conforme definido no docker-compose.
+  web_listen_addr: 0.0.0.0:443
+  
+  # CORREÇÃO: Os caminhos dos certificados devem ser os caminhos *dentro* do contêiner.
+  # Certifique-se de que os nomes dos arquivos na sua pasta ./teleport/certs
+  # correspondem exatamente aos nomes definidos abaixo.
+  https_key_file: /etc/teleport/certs/teleport.local.key
+  https_cert_file: /etc/teleport/certs/teleport.local.pem
+
+# Configuração do serviço SSH
+ssh_service:
+  enabled: yes
+  listen_addr: 0.0.0.0:3022

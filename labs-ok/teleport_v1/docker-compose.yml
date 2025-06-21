@@ -1,0 +1,35 @@
+version: '3.7'
+# Definição dos serviços (contêineres)
+services:
+  # Serviço do Teleport
+  teleport:
+    # Imagem oficial do Teleport a ser utilizada.
+    image: public.ecr.aws/gravitational/teleport-distroless:17.5.1
+    container_name: teleport
+    hostname: teleport.local # Defina o hostname que será usado para acessar o Teleport
+    ports:
+      # Porta para a interface web do Proxy Service
+      - "443:443"
+      # Porta para o túnel reverso do Proxy Service (para conectar nós remotos)
+      - "3024:3024"
+      # Porta para o Auth Service (autenticação e autorização)
+      - "3025:3025"
+      # Porta para o SSH Service
+      - "3022:3022"
+    volumes:
+      # Mapeia o diretório de configuração local para o contêiner
+      - ./teleport/config:/etc/teleport
+      # Mapeia o diretório de dados para persistência do estado do Teleport
+      - ./teleport/data:/var/lib/teleport
+      # Mapeia o diretório para certificados TLS/SSL (essencial para produção)
+      - ./teleport/certs:/etc/teleport/certs
+    
+    # CORREÇÃO: Removido o "teleport" do início do comando, pois ele já é o entrypoint da imagem.
+    command: ["-c", "/etc/teleport/teleport.yaml"]
+
+    networks:
+      - teleport-net
+# Definição das redes
+networks:
+  teleport-net:
+    driver: bridge
