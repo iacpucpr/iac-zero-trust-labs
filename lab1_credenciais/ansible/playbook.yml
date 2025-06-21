@@ -1,0 +1,8 @@
+
+- hosts: localhost
+  connection: local
+  tasks:
+    - name: Garantir que os containers estão atualizados
+      command: docker-compose pull
+      args:
+        chdir: ../

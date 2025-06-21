@@ -1,0 +1,29 @@
+
+version: '3.8'
+
+services:
+  app:
+    build: ./app
+    ports:
+      - "5000:5000"
+    depends_on:
+      - vault
+
+  vault:
+    image: vault:1.12
+    ports:
+      - "8200:8200"
+    cap_add:
+      - IPC_LOCK
+    environment:
+      VAULT_DEV_ROOT_TOKEN_ID: root
+      VAULT_DEV_LISTEN_ADDRESS: "0.0.0.0:8200"
+
+  authelia:
+    image: authelia/authelia
+    ports:
+      - "9091:9091"
+    volumes:
+      - ./authelia:/config
+    environment:
+      - TZ=America/Sao_Paulo
