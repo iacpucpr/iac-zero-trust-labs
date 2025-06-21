@@ -15,7 +15,7 @@ Este repositório contém dois laboratórios práticos que simulam a aplicação
 
 - Docker e Docker Compose
 - VS Code (opcional)
-- (opcional) Terraform CLI
+- (opcional) Terraform CLI.
 
 ## Como executar (exemplo com Lab 1)
 
