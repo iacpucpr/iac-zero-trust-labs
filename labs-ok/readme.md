@@ -35,6 +35,8 @@ Pronto, agora é so seguir com as demais configurações.
 Possível integração com o Ggithub para autenticar usuários:
 https://goteleport.com/docs/admin-guides/management/guides/github-integration/
 
+Erros de certificados: Se der algum erro de certificado na conexao com o TSH tente colocar --insecure ao final do comando
+
 
 
 
