@@ -25,29 +25,28 @@ Estrutura de Diretórios
 
 Para uma melhor organização, recomendo a seguinte estrutura de arquivos. Crie estes diretórios e arquivos vazios antes de começar:
 
-/docker-stack/
-|-- .env                     # Arquivo de variáveis de ambiente
-|-- docker-compose.yml       # Nosso arquivo principal
-|
-|-- traefik/
-|   |-- traefik.yml          # Configuração estática do Traefik
-|   |-- acme.json            # Arquivo para os certificados SSL (crie vazio)
-|
-|-- authentik/               # Diretórios para dados persistentes
-|   |-- media/
-|   |-- templates/
-|   |-- geoip/
-|
-|-- guacamole/
-|   |-- data/
-|   |-- init/
-|   |   |-- initdb.sql       # Script de inicialização do BD do Guacamole
-|
-|-- nginx/
-|   |-- html/
-|   |   |-- index.html       # Página de exemplo para o Nginx
+    /docker-stack/
+    |-- .env                     # Arquivo de variáveis de ambiente
+    |-- docker-compose.yml       # Nosso arquivo principal
+    |
+    |-- traefik/
+    |   |-- traefik.yml          # Configuração estática do Traefik
+    |   |-- acme.json            # Arquivo para os certificados SSL (crie vazio)
+    |
+    |-- authentik/               # Diretórios para dados persistentes
+    |   |-- media/
+    |   |-- templates/
+    |   |-- geoip/
+    |
+    |-- guacamole/
+    |   |-- data/
+    |   |-- init/
+    |   |   |-- initdb.sql       # Script de inicialização do BD do Guacamole
+    |
+    |-- nginx/
+    |   |-- html/
+    |   |   |-- index.html       # Página de exemplo para o Nginx
 
-======
 Passo a Passo para Gerar Certificados Autoassinados
 
 Para que o Traefik possa servir suas aplicações via HTTPS, ele precisa de um arquivo de certificado e uma chave privada. Siga estes passos no seu terminal, na máquina que roda o Docker.
