@@ -26,26 +26,26 @@ Estrutura de Diretórios
 Para uma melhor organização, recomendo a seguinte estrutura de arquivos. Crie estes diretórios e arquivos vazios antes de começar:
 
     /docker-stack/
-    |-- .env                     # Arquivo de variáveis de ambiente
-    |-- docker-compose.yml       # Nosso arquivo principal
-    |
-    |-- traefik/
-    |   |-- traefik.yml          # Configuração estática do Traefik
-    |   |-- acme.json            # Arquivo para os certificados SSL (crie vazio)
-    |
-    |-- authentik/               # Diretórios para dados persistentes
-    |   |-- media/
-    |   |-- templates/
-    |   |-- geoip/
-    |
-    |-- guacamole/
-    |   |-- data/
-    |   |-- init/
-    |   |   |-- initdb.sql       # Script de inicialização do BD do Guacamole
-    |
-    |-- nginx/
-    |   |-- html/
-    |   |   |-- index.html       # Página de exemplo para o Nginx
+    -- .env                     # Arquivo de variáveis de ambiente
+    -- docker-compose.yml       # Nosso arquivo principal
+    
+    -- traefik/
+       |-- traefik.yml          # Configuração estática do Traefik
+       |-- acme.json            # Arquivo para os certificados SSL (crie vazio)
+    
+    -- authentik/               # Diretórios para dados persistentes
+       |-- media/
+       |-- templates/
+       |-- geoip/
+    
+    -- guacamole/
+       |-- data/
+       |-- init/
+       |   |-- initdb.sql       # Script de inicialização do BD do Guacamole
+    
+    -- nginx/
+       |-- html/
+       |   |-- index.html       # Página de exemplo para o Nginx
 
 Passo a Passo para Gerar Certificados Autoassinados
 
@@ -108,6 +108,18 @@ Como Colocar Tudo Para Rodar
         Bash
 
         docker compose up -d
+
+        Verifique os logs 
+        docker compose logs
+
+        Parando o docker compose
+
+        docker compose down -v
+
+        Apagando os dockers para liberar espaço na máquina
+
+        docker system prune --all 
+        
 
     Configure o Authentik:
 
