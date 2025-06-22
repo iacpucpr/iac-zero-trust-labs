@@ -41,11 +41,15 @@ Para uma melhor organização, recomendo a seguinte estrutura de arquivos. Crie 
     -- guacamole/
        |-- data/
        |-- init/
-       |   |-- initdb.sql       # Script de inicialização do BD do Guacamole
+       |   |-- initdb.sh       # Script de inicialização do BD do Guacamole
     
     -- nginx/
        |-- html/
        |   |-- index.html       # Página de exemplo para o Nginx
+
+Ajustes de permissões
+        chmod +x ./guacamole/init/initdb.sh
+        sudo chmod 644 ./traefik/certs/*
 
 Passo a Passo para Gerar Certificados Autoassinados
 
