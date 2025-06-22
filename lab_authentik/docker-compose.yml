@@ -31,7 +31,7 @@ services:
       - nginx-net
     depends_on:
       authentik-server:
-        condition: service_healthy # Espera que o authentik-server esteja saudável
+        condition: service_started
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.traefik-dashboard.rule=Host(`traefik.juarez.local`)"
