@@ -30,7 +30,7 @@ Para uma melhor organização, recomendo a seguinte estrutura de arquivos. Crie 
     -- docker-compose.yml       # Nosso arquivo principal
     
     -- traefik/
-       |-- traefik.yml          # Configuração estática do Traefik
+       |-- dynamic.yml          # Configuração estática do Traefik
        |-- acme.json            # Arquivo para os certificados SSL (crie vazio)
     
     -- authentik/               # Diretórios para dados persistentes
@@ -117,11 +117,9 @@ Como Colocar Tudo Para Rodar
         docker compose logs
 
         Parando o docker compose e zerando
-
-        docker compose down -y
+        docker compose down -v
 
         Apagando os dockers para liberar espaço na máquina
-
         docker system prune --all 
         
 
@@ -129,7 +127,7 @@ Como Colocar Tudo Para Rodar
 
         Aguarde alguns minutos para que todos os serviços subam.
 
-        Acesse https://auth.seu-dominio.com. Na primeira vez, você será guiado para criar uma conta de administrador.
+        Acesse https://auth.seu-dominio/if/flow/initial-setup/   Na primeira vez, você será guiado para criar uma conta de administrador. O usuario padrao é akadmin mas voce pode criar mais um.
 
         Crie um Provedor (Provider):
             No menu, vá em Applications -> Providers e clique em Create.
