@@ -112,9 +112,9 @@ Como Colocar Tudo Para Rodar
         Verifique os logs 
         docker compose logs
 
-        Parando o docker compose
+        Parando o docker compose e zerando
 
-        docker compose down -v
+        docker compose down -y
 
         Apagando os dockers para liberar espaço na máquina
 
