@@ -30,8 +30,7 @@ services:
       - proxy
       - nginx-net
     depends_on:
-      authentik-server:
-        condition: service_healthy # Espera que o authentik-server esteja saudável
+      - authentik-server
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.traefik-dashboard.rule=Host(`traefik.juarez.local`)"
@@ -45,21 +44,13 @@ services:
     image: postgres:15-alpine
     container_name: authentik-postgres
     restart: unless-stopped
-    # CORREÇÃO: Usa o ficheiro de configuração para desativar a autenticação por palavra-passe
-    command: postgres -c 'hba_file=/etc/postgresql/pg_hba.conf'
     volumes:
       - authentik-db:/var/lib/postgresql/data
-      - ./postgres-config/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
     environment:
-      # Palavras-passe já não são necessárias aqui, mas mantemos o utilizador e a base de dados
+      # CORREÇÃO: Força o PostgreSQL a confiar em ligações da rede interna sem password
+      POSTGRES_HOST_AUTH_METHOD: trust
       POSTGRES_USER: authentik
       POSTGRES_DB: authentik
-    healthcheck: # Verifica se a base de dados está pronta
-      test: ["CMD-SHELL", "pg_isready -d $$POSTGRES_DB -U $$POSTGRES_USER"]
-      start_period: 20s
-      interval: 5s
-      timeout: 5s
-      retries: 5
     networks:
       - authentik-internal
 
@@ -67,12 +58,6 @@ services:
     image: redis:alpine
     container_name: authentik-redis
     restart: unless-stopped
-    healthcheck: # Verifica se o redis está pronto
-      test: ["CMD", "redis-cli", "ping"]
-      start_period: 20s
-      interval: 5s
-      timeout: 5s
-      retries: 5
     networks:
       - authentik-internal
 
@@ -82,18 +67,15 @@ services:
     restart: unless-stopped
     user: "0"
     depends_on:
-      authentik-postgres:
-        condition: service_healthy
-      authentik-redis:
-        condition: service_healthy
+      - authentik-postgres
+      - authentik-redis
     command: worker
     environment:
-      AUTHENTIK_SECRET_KEY: "MUDE_A_SECRET_KEY_AQUI_PARA_ALGO_LONGO_E_SEGURO"
+      AUTHENTIK_SECRET_KEY: "CHANGE_THIS_VERY_LONG_AND_SECURE_SECRET_KEY"
       AUTHENTIK_POSTGRESQL__HOST: authentik-postgres
       AUTHENTIK_POSTGRESQL__USER: authentik
       AUTHENTIK_POSTGRESQL__NAME: authentik
-      # A palavra-passe pode ser qualquer coisa ou vazia, pois o acesso é por 'trust'
-      AUTHENTIK_POSTGRESQL__PASSWORD: ""
+      AUTHENTIK_POSTGRESQL__PASSWORD: "" # Password não é necessária devido ao 'trust'
       AUTHENTIK_REDIS__HOST: authentik-redis
       TZ: "America/Sao_Paulo"
     volumes:
@@ -108,23 +90,16 @@ services:
     container_name: authentik-server
     restart: unless-stopped
     depends_on:
-      authentik-worker:
-        condition: service_started
+      - authentik-worker
     command: server
     environment:
-      AUTHENTIK_SECRET_KEY: "MUDE_A_SECRET_KEY_AQUI_PARA_ALGO_LONGO_E_SEGURO"
+      AUTHENTIK_SECRET_KEY: "CHANGE_THIS_VERY_LONG_AND_SECURE_SECRET_KEY"
       AUTHENTIK_POSTGRESQL__HOST: authentik-postgres
       AUTHENTIK_POSTGRESQL__USER: authentik
       AUTHENTIK_POSTGRESQL__NAME: authentik
-      AUTHENTIK_POSTGRESQL__PASSWORD: ""
+      AUTHENTIK_POSTGRESQL__PASSWORD: "" # Password não é necessária devido ao 'trust'
       AUTHENTIK_REDIS__HOST: authentik-redis
       TZ: "America/Sao_Paulo"
-    healthcheck: # Verifica se o authentik-server está pronto
-      test: ["CMD-SHELL", "wget -O /dev/null http://localhost:9000/-/health/live/ || exit 1"]
-      start_period: 20s
-      interval: 5s
-      timeout: 5s
-      retries: 10
     volumes:
       - ./authentik/media:/media
       - ./authentik/templates:/templates
@@ -152,14 +127,8 @@ services:
     environment:
       POSTGRES_DB: guacamole
       POSTGRES_USER: guacamole_user
-      POSTGRES_PASSWORD: "MUDE_A_SENHA_DO_BD_GUACAMOLE"
+      POSTGRES_PASSWORD: "CHANGE_THIS_GUACAMOLE_DB_PASSWORD"
       PGDATA: /var/lib/postgresql/data/pgdata
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -d $$POSTGRES_DB -U $$POSTGRES_USER"]
-      start_period: 20s
-      interval: 5s
-      timeout: 5s
-      retries: 5
     networks:
       - guacamole-internal
 
@@ -175,16 +144,14 @@ services:
     container_name: guacamole
     restart: unless-stopped
     depends_on:
-      guacd:
-        condition: service_started
-      guacamole-db:
-        condition: service_healthy
+      - guacd
+      - guacamole-db
     environment:
       GUACD_HOSTNAME: guacd
       POSTGRESQL_HOSTNAME: guacamole-db
       POSTGRESQL_DATABASE: guacamole
       POSTGRESQL_USER: guacamole_user
-      POSTGRESQL_PASSWORD: "MUDE_A_SENHA_DO_BD_GUACAMOLE"
+      POSTGRESQL_PASSWORD: "CHANGE_THIS_GUACAMOLE_DB_PASSWORD"
       TZ: "America/Sao_Paulo"
     networks:
       - proxy
