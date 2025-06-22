@@ -49,7 +49,8 @@ Para uma melhor organização, recomendo a seguinte estrutura de arquivos. Crie 
 
 Ajustes de permissões
         chmod +x ./guacamole/init/initdb.sh
-        sudo chmod 644 ./traefik/certs/*
+        sudo chmod -R 755 ./traefik/certs
+        sudo chown -R 1000:1000 ./authentik/
 
 Passo a Passo para Gerar Certificados Autoassinados
 
@@ -72,12 +73,7 @@ Para que o Traefik possa servir suas aplicações via HTTPS, ele precisa de um a
       -subj "/CN=seu-dominio-local.lab" \
       -addext "subjectAltName = DNS:seu-dominio-local.lab"
 
-ou via linha de comando direto
-    openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout seu-dominio.key -out seu-dominio.pem
-
-    chmod 600 seu-dominio.key
-
-    Ajuste seu arquivo hosts local:
+       Ajuste seu arquivo hosts local:
     Para que seu navegador consiga acessar os serviços usando os nomes de domínio (ex: guacamole.seu-dominio-local.lab), você precisa dizer ao seu sistema operacional para onde ele deve apontar.
 
         Encontre o IP do seu servidor Docker. Se estiver rodando localmente, será 127.0.0.1. Se for outra máquina na sua rede, use o IP dela.
@@ -106,13 +102,9 @@ Como Colocar Tudo Para Rodar
     Inicie a Stack:
         Navegue até o diretório raiz /docker-stack/ no seu terminal.
         Execute o comando:
-        Na primeira vez coloque o .env de forma explícita:
-        
+              
         Bash
-
-        docker compose --env-file ./.env up -d
-
-        Das próximas vezes, se nada der errado e tudo der certo pode usar da forma convencional
+  
         docker compose up -d
 
         Verifique os logs 
