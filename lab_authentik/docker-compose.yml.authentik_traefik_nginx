@@ -1,0 +1,145 @@
+services:
+  # -------------------- TRAEFIK (REVERSE PROXY) --------------------
+  traefik:
+    image: traefik:v3.0
+    container_name: traefik
+    user: "0" # Garante permissões para ler os certificados
+    command:
+      - "--log.level=INFO"
+      - "--api.dashboard=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.network=proxy"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+      - "--providers.file.filename=/etc/traefik/config/dynamic.yml"
+      - "--providers.file.watch=true"
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik/dynamic.yml:/etc/traefik/config/dynamic.yml:ro
+      - ./traefik/certs:/certs:ro
+    networks:
+      - proxy
+    depends_on:
+      - authentik-server
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik-dashboard.rule=Host(`traefik.juarez.local`)"
+      - "traefik.http.routers.traefik-dashboard.entrypoints=websecure"
+      - "traefik.http.routers.traefik-dashboard.tls=true"
+      - "traefik.http.routers.traefik-dashboard.service=api@internal"
+      - "traefik.http.routers.traefik-dashboard.middlewares=authentik@docker"
+
+  # -------------------- AUTHENTIK (SSO) --------------------
+  authentik-postgres:
+    image: postgres:15-alpine
+    container_name: authentik-postgres
+    restart: unless-stopped
+    volumes:
+      - authentik-db:/var/lib/postgresql/data
+    environment:
+      # CORREÇÃO: Força o PostgreSQL a confiar em ligações da rede interna sem password
+      POSTGRES_HOST_AUTH_METHOD: trust
+      POSTGRES_USER: authentik
+      POSTGRES_DB: authentik
+    networks:
+      - authentik-internal
+
+  authentik-redis:
+    image: redis:alpine
+    container_name: authentik-redis
+    restart: unless-stopped
+    networks:
+      - authentik-internal
+
+  authentik-worker:
+    image: ghcr.io/goauthentik/server:latest
+    container_name: authentik-worker
+    restart: unless-stopped
+    user: "0"
+    depends_on:
+      - authentik-postgres
+      - authentik-redis
+    command: worker
+    environment:
+      AUTHENTIK_SECRET_KEY: "F/ksdrMRccssNWiBbCwMg9aAKnJbups9mBerYOPLGnJKp4Nt"
+      AUTHENTIK_POSTGRESQL__HOST: authentik-postgres
+      AUTHENTIK_POSTGRESQL__USER: authentik
+      AUTHENTIK_POSTGRESQL__NAME: authentik
+      AUTHENTIK_POSTGRESQL__PASSWORD: "" # Password não é necessária devido ao 'trust'
+      AUTHENTIK_REDIS__HOST: authentik-redis
+      TZ: "America/Sao_Paulo"
+    volumes:
+      - ./authentik/media:/media
+      - ./authentik/templates:/templates
+      - ./authentik/geoip:/geoip
+    networks:
+      - authentik-internal
+
+  authentik-server:
+    image: ghcr.io/goauthentik/server:latest
+    container_name: authentik-server
+    restart: unless-stopped
+    depends_on:
+      - authentik-worker
+    command: server
+    environment:
+      AUTHENTIK_SECRET_KEY: "F/ksdrMRccssNWiBbCwMg9aAKnJbups9mBerYOPLGnJKp4Nt"
+      AUTHENTIK_POSTGRESQL__HOST: authentik-postgres
+      AUTHENTIK_POSTGRESQL__USER: authentik
+      AUTHENTIK_POSTGRESQL__NAME: authentik
+      AUTHENTIK_POSTGRESQL__PASSWORD: "" # Password não é necessária devido ao 'trust'
+      AUTHENTIK_REDIS__HOST: authentik-redis
+      TZ: "America/Sao_Paulo"
+    volumes:
+      - ./authentik/media:/media
+      - ./authentik/templates:/templates
+      - ./authentik/geoip:/geoip
+    networks:
+      - proxy
+      - authentik-internal
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.authentik.rule=Host(`auth.juarez.local`)"
+      - "traefik.http.routers.authentik.entrypoints=websecure"
+      - "traefik.http.routers.authentik.tls=true"
+      - "traefik.http.services.authentik.loadbalancer.server.port=9000"
+      - "traefik.http.middlewares.authentik.forwardauth.address=http://authentik-server:9000/outpost.goauthentik.io/auth/traefik"
+      - "traefik.http.middlewares.authentik.forwardauth.trustForwardHeader=true"
+      - "traefik.http.middlewares.authentik.forwardauth.authResponseHeaders=X-authentik-username,X-authentik-groups,X-authentik-email,X-authentik-name"
+
+# --- ADICIONADO: NGINX (APLICAÇÃO PROTEGIDA) ---
+  nginx-app:
+    image: nginx:alpine
+    container_name: nginx-app
+    restart: unless-stopped
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/html:/usr/share/nginx/html:ro
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.nginx-app.rule=Host(`app.juarez.local`)"
+      - "traefik.http.routers.nginx-app.entrypoints=websecure"
+      - "traefik.http.routers.nginx-app.tls=true"
+      - "traefik.http.services.nginx-app.loadbalancer.server.port=80"
+      - "traefik.http.routers.nginx-app.middlewares=authentik@docker" # <--- A MÁGICA ACONTECE AQUI
+
+# -------------------- DEFINIÇÃO DAS REDES E VOLUMES --------------------
+networks:
+  proxy:
+    name: proxy
+  authentik-internal:
+    internal: true
+
+volumes:
+  authentik-db:
