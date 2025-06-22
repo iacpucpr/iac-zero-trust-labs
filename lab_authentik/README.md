@@ -84,10 +84,8 @@ ou via linha de comando direto
 
         Edite o arquivo hosts:
 
-            Windows: C:\Windows\System32\drivers\etc\hosts (edite como Administrador).
-
-            Linux/macOS: /etc/hosts (edite com sudo).
-
+        sudo vim /etc/hosts 
+        
         Adicione as seguintes linhas, substituindo 192.168.1.100 pelo IP do seu servidor Docker e seu-dominio-local.lab pelo domínio que você usou no certificado:
 
     192.168.1.100   traefik.seu-dominio-local.lab
@@ -96,7 +94,6 @@ ou via linha de comando direto
     192.168.1.100   nginx.seu-dominio-local.lab
 
 Agora que os certificados estão prontos, vamos atualizar os arquivos de configuração.
-
 
 Como Colocar Tudo Para Rodar
 
@@ -109,8 +106,13 @@ Como Colocar Tudo Para Rodar
     Inicie a Stack:
         Navegue até o diretório raiz /docker-stack/ no seu terminal.
         Execute o comando:
+        Na primeira vez coloque o .env de forma explícita:
+        
         Bash
 
+        docker compose --env-file ./.env up -d
+
+        Das próximas vezes, se nada der errado e tudo der certo pode usar da forma convencional
         docker compose up -d
 
         Verifique os logs 
