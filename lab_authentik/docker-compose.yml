@@ -3,7 +3,7 @@ services:
   traefik:
     image: traefik:v3.0
     container_name: traefik
-    user: "0" # Garante a leitura dos certificados
+    user: "0" # Garante permissões para ler os certificados
     command:
       - "--log.level=INFO"
       - "--api.dashboard=true"
@@ -31,7 +31,7 @@ services:
       - nginx-net
     depends_on:
       authentik-server:
-        condition: service_started
+        condition: service_healthy # Espera que o authentik-server esteja saudável
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.traefik-dashboard.rule=Host(`traefik.juarez.local`)"
@@ -45,11 +45,14 @@ services:
     image: postgres:15-alpine
     container_name: authentik-postgres
     restart: unless-stopped
+    # CORREÇÃO: Usa o ficheiro de configuração para desativar a autenticação por palavra-passe
+    command: postgres -c 'hba_file=/etc/postgresql/pg_hba.conf'
     volumes:
       - authentik-db:/var/lib/postgresql/data
+      - ./postgres-config/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
     environment:
+      # Palavras-passe já não são necessárias aqui, mas mantemos o utilizador e a base de dados
       POSTGRES_USER: authentik
-      POSTGRES_PASSWORD: "CHANGE_THIS_STRONG_PASSWORD_1"
       POSTGRES_DB: authentik
     healthcheck: # Verifica se a base de dados está pronta
       test: ["CMD-SHELL", "pg_isready -d $$POSTGRES_DB -U $$POSTGRES_USER"]
@@ -73,22 +76,47 @@ services:
     networks:
       - authentik-internal
 
-  authentik-server:
+  authentik-worker:
     image: ghcr.io/goauthentik/server:latest
-    container_name: authentik-server
+    container_name: authentik-worker
     restart: unless-stopped
+    user: "0"
     depends_on:
       authentik-postgres:
         condition: service_healthy
       authentik-redis:
         condition: service_healthy
-    command: server
+    command: worker
     environment:
-      AUTHENTIK_SECRET_KEY: "CHANGE_THIS_VERY_LONG_AND_SECURE_SECRET_KEY"
+      AUTHENTIK_SECRET_KEY: "MUDE_A_SECRET_KEY_AQUI_PARA_ALGO_LONGO_E_SEGURO"
       AUTHENTIK_POSTGRESQL__HOST: authentik-postgres
       AUTHENTIK_POSTGRESQL__USER: authentik
       AUTHENTIK_POSTGRESQL__NAME: authentik
-      AUTHENTIK_POSTGRESQL__PASSWORD: "CHANGE_THIS_STRONG_PASSWORD_1"
+      # A palavra-passe pode ser qualquer coisa ou vazia, pois o acesso é por 'trust'
+      AUTHENTIK_POSTGRESQL__PASSWORD: ""
+      AUTHENTIK_REDIS__HOST: authentik-redis
+      TZ: "America/Sao_Paulo"
+    volumes:
+      - ./authentik/media:/media
+      - ./authentik/templates:/templates
+      - ./authentik/geoip:/geoip
+    networks:
+      - authentik-internal
+
+  authentik-server:
+    image: ghcr.io/goauthentik/server:latest
+    container_name: authentik-server
+    restart: unless-stopped
+    depends_on:
+      authentik-worker:
+        condition: service_started
+    command: server
+    environment:
+      AUTHENTIK_SECRET_KEY: "MUDE_A_SECRET_KEY_AQUI_PARA_ALGO_LONGO_E_SEGURO"
+      AUTHENTIK_POSTGRESQL__HOST: authentik-postgres
+      AUTHENTIK_POSTGRESQL__USER: authentik
+      AUTHENTIK_POSTGRESQL__NAME: authentik
+      AUTHENTIK_POSTGRESQL__PASSWORD: ""
       AUTHENTIK_REDIS__HOST: authentik-redis
       TZ: "America/Sao_Paulo"
     healthcheck: # Verifica se o authentik-server está pronto
@@ -114,30 +142,6 @@ services:
       - "traefik.http.middlewares.authentik.forwardauth.trustForwardHeader=true"
       - "traefik.http.middlewares.authentik.forwardauth.authResponseHeaders=X-authentik-username,X-authentik-groups,X-authentik-email,X-authentik-name"
 
-  authentik-worker:
-    image: ghcr.io/goauthentik/server:latest
-    container_name: authentik-worker
-    user: "0"
-    restart: unless-stopped
-    depends_on:
-      authentik-server: # Espera que o servidor principal termine a sua configuração
-        condition: service_healthy
-    command: worker
-    environment:
-      AUTHENTIK_SECRET_KEY: "CHANGE_THIS_VERY_LONG_AND_SECURE_SECRET_KEY"
-      AUTHENTIK_POSTGRESQL__HOST: authentik-postgres
-      AUTHENTIK_POSTGRESQL__USER: authentik
-      AUTHENTIK_POSTGRESQL__NAME: authentik
-      AUTHENTIK_POSTGRESQL__PASSWORD: "CHANGE_THIS_STRONG_PASSWORD_1"
-      AUTHENTIK_REDIS__HOST: authentik-redis
-      TZ: "America/Sao_Paulo"
-    volumes:
-      - ./authentik/media:/media
-      - ./authentik/templates:/templates
-      - ./authentik/geoip:/geoip
-    networks:
-      - authentik-internal
-
   # -------------------- GUACAMOLE STACK --------------------
   guacamole-db:
     image: postgres:15-alpine
@@ -148,7 +152,7 @@ services:
     environment:
       POSTGRES_DB: guacamole
       POSTGRES_USER: guacamole_user
-      POSTGRES_PASSWORD: "CHANGE_THIS_GUACAMOLE_DB_PASSWORD"
+      POSTGRES_PASSWORD: "MUDE_A_SENHA_DO_BD_GUACAMOLE"
       PGDATA: /var/lib/postgresql/data/pgdata
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -d $$POSTGRES_DB -U $$POSTGRES_USER"]
@@ -180,7 +184,7 @@ services:
       POSTGRESQL_HOSTNAME: guacamole-db
       POSTGRESQL_DATABASE: guacamole
       POSTGRESQL_USER: guacamole_user
-      POSTGRESQL_PASSWORD: "CHANGE_THIS_GUACAMOLE_DB_PASSWORD"
+      POSTGRESQL_PASSWORD: "MUDE_A_SENHA_DO_BD_GUACAMOLE"
       TZ: "America/Sao_Paulo"
     networks:
       - proxy
