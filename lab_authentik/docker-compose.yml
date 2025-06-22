@@ -3,7 +3,7 @@ services:
   traefik:
     image: traefik:v3.0
     container_name: traefik
-    # Comando explícito com todas as configurações para garantir a inicialização correta
+    user: "0" # Executa como root para garantir a leitura dos certificados
     command:
       - "--log.level=INFO"
       - "--api.dashboard=true"
@@ -14,7 +14,6 @@ services:
       - "--entrypoints.websecure.address=:443"
       - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
       - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
-      # Aponta para o arquivo que agora só contém a definição do TLS
       - "--providers.file.filename=/etc/traefik/config/dynamic.yml"
       - "--providers.file.watch=true"
     restart: unless-stopped
@@ -25,20 +24,16 @@ services:
       - "443:443"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      # O nome do arquivo foi alterado para refletir seu propósito
       - ./traefik/dynamic.yml:/etc/traefik/config/dynamic.yml:ro
       - ./traefik/certs:/certs:ro
-    environment:
-      - TZ=${TZ}
     networks:
       - proxy
       - nginx-net
-    # Adicionado depends_on para melhorar a ordem de inicialização
     depends_on:
       - authentik-server
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.traefik-dashboard.rule=Host(`traefik.${DOMAIN}`)"
+      - "traefik.http.routers.traefik-dashboard.rule=Host(`traefik.juarez.local`)"
       - "traefik.http.routers.traefik-dashboard.entrypoints=websecure"
       - "traefik.http.routers.traefik-dashboard.tls=true"
       - "traefik.http.routers.traefik-dashboard.service=api@internal"
@@ -52,9 +47,10 @@ services:
     volumes:
       - authentik-db:/var/lib/postgresql/data
     environment:
-      - POSTGRES_USER=${AUTHENTIK_POSTGRES_USER}
-      - POSTGRES_PASSWORD=${AUTHENTIK_POSTGRES_PASSWORD}
-      - POSTGRES_DB=${AUTHENTIK_POSTGRES_DB}
+      # Valores definidos diretamente para garantir a leitura
+      POSTGRES_USER: authentik
+      POSTGRES_PASSWORD: "MUDE_A_SENHA_DO_BD_AUTHENTIK" # Ex: super-segura-123
+      POSTGRES_DB: authentik
     networks:
       - authentik-internal
 
@@ -72,13 +68,13 @@ services:
     depends_on: [authentik-postgres, authentik-redis]
     command: server
     environment:
-      - AUTHENTIK_SECRET_KEY=${AUTHENTIK_SECRET_KEY}
-      - AUTHENTIK_POSTGRESQL__HOST=authentik-postgres
-      - AUTHENTIK_POSTGRESQL__USER=${AUTHENTIK_POSTGRES_USER}
-      - AUTHENTIK_POSTGRESQL__NAME=${AUTHENTIK_POSTGRES_DB}
-      - AUTHENTIK_POSTGRESQL__PASSWORD=${AUTHENTIK_POSTGRES_PASSWORD}
-      - AUTHENTIK_REDIS__HOST=authentik-redis
-      - TZ=${TZ}
+      AUTHENTIK_SECRET_KEY: "MUDE_A_SECRET_KEY_AQUI_PARA_ALGO_LONGO_E_SEGURO"
+      AUTHENTIK_POSTGRESQL__HOST: authentik-postgres
+      AUTHENTIK_POSTGRESQL__USER: authentik
+      AUTHENTIK_POSTGRESQL__NAME: authentik
+      AUTHENTIK_POSTGRESQL__PASSWORD: "MUDE_A_SENHA_DO_BD_AUTHENTIK" # Use a mesma senha definida acima
+      AUTHENTIK_REDIS__HOST: authentik-redis
+      TZ: "America/Sao_Paulo"
     volumes:
       - ./authentik/media:/media
       - ./authentik/templates:/templates
@@ -88,7 +84,7 @@ services:
       - authentik-internal
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.authentik.rule=Host(`auth.${DOMAIN}`)"
+      - "traefik.http.routers.authentik.rule=Host(`auth.juarez.local`)"
       - "traefik.http.routers.authentik.entrypoints=websecure"
       - "traefik.http.routers.authentik.tls=true"
       - "traefik.http.services.authentik.loadbalancer.server.port=9000"
@@ -99,17 +95,18 @@ services:
   authentik-worker:
     image: ghcr.io/goauthentik/server:latest
     container_name: authentik-worker
+    user: "0"
     restart: unless-stopped
     depends_on: [authentik-postgres, authentik-redis]
     command: worker
     environment:
-      - AUTHENTIK_SECRET_KEY=${AUTHENTIK_SECRET_KEY}
-      - AUTHENTIK_POSTGRESQL__HOST=authentik-postgres
-      - AUTHENTIK_POSTGRESQL__USER=${AUTHENTIK_POSTGRES_USER}
-      - AUTHENTIK_POSTGRESQL__NAME=${AUTHENTIK_POSTGRES_DB}
-      - AUTHENTIK_POSTGRESQL__PASSWORD=${AUTHENTIK_POSTGRES_PASSWORD}
-      - AUTHENTIK_REDIS__HOST=authentik-redis
-      - TZ=${TZ}
+      AUTHENTIK_SECRET_KEY: "MUDE_A_SECRET_KEY_AQUI_PARA_ALGO_LONGO_E_SEGURO" # Use a mesma chave do server
+      AUTHENTIK_POSTGRESQL__HOST: authentik-postgres
+      AUTHENTIK_POSTGRESQL__USER: authentik
+      AUTHENTIK_POSTGRESQL__NAME: authentik
+      AUTHENTIK_POSTGRESQL__PASSWORD: "MUDE_A_SENHA_DO_BD_AUTHENTIK" # Use a mesma senha do server
+      AUTHENTIK_REDIS__HOST: authentik-redis
+      TZ: "America/Sao_Paulo"
     volumes:
       - ./authentik/media:/media
       - ./authentik/templates:/templates
@@ -124,12 +121,11 @@ services:
     restart: unless-stopped
     volumes:
       - guacamole-db-data:/var/lib/postgresql/data
-      - ./guacamole/init:/docker-entrypoint-initdb.d
     environment:
-      - POSTGRES_DB=${GUACAMOLE_DB_NAME}
-      - POSTGRES_USER=${GUACAMOLE_DB_USER}
-      - POSTGRES_PASSWORD=${GUACAMOLE_DB_PASSWORD}
-      - PGDATA=/var/lib/postgresql/data/pgdata
+      POSTGRES_DB: guacamole
+      POSTGRES_USER: guacamole_user
+      POSTGRES_PASSWORD: "MUDE_A_SENHA_DO_BD_GUACAMOLE" # Ex: outra-senha-456
+      PGDATA: /var/lib/postgresql/data/pgdata
     networks:
       - guacamole-internal
 
@@ -146,18 +142,18 @@ services:
     restart: unless-stopped
     depends_on: [guacd, guacamole-db]
     environment:
-      - GUACD_HOSTNAME=guacd
-      - POSTGRESQL_HOSTNAME=guacamole-db
-      - POSTGRESQL_DATABASE=${GUACAMOLE_DB_NAME}
-      - POSTGRESQL_USER=${GUACAMOLE_DB_USER}
-      - POSTGRESQL_PASSWORD=${GUACAMOLE_DB_PASSWORD}
-      - TZ=${TZ}
+      GUACD_HOSTNAME: guacd
+      POSTGRESQL_HOSTNAME: guacamole-db
+      POSTGRESQL_DATABASE: guacamole
+      POSTGRESQL_USER: guacamole_user
+      POSTGRESQL_PASSWORD: "MUDE_A_SENHA_DO_BD_GUACAMOLE" # Use a mesma senha definida acima
+      TZ: "America/Sao_Paulo"
     networks:
       - proxy
       - guacamole-internal
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.guacamole.rule=Host(`guacamole.${DOMAIN}`)"
+      - "traefik.http.routers.guacamole.rule=Host(`guacamole.juarez.local`)"
       - "traefik.http.routers.guacamole.entrypoints=websecure"
       - "traefik.http.routers.guacamole.tls=true"
       - "traefik.http.services.guacamole.loadbalancer.server.port=8080"
@@ -175,11 +171,10 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=nginx-net"
-      - "traefik.http.routers.nginx.rule=Host(`nginx.${DOMAIN}`)"
+      - "traefik.http.routers.nginx.rule=Host(`nginx.juarez.local`)"
       - "traefik.http.routers.nginx.entrypoints=websecure"
       - "traefik.http.routers.nginx.tls=true"
       - "traefik.http.services.nginx.loadbalancer.server.port=80"
-      # - "traefik.http.routers.nginx.middlewares=authentik@docker"
 
 # -------------------- DEFINIÇÃO DAS REDES E VOLUMES --------------------
 networks:
@@ -195,4 +190,3 @@ networks:
 volumes:
   authentik-db:
   guacamole-db-data:
-
