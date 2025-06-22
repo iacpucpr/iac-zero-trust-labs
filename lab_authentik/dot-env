@@ -1,22 +1,18 @@
-# /docker-stack/.env
-
 # --- Configurações Gerais ---
-# Substitua pelo seu domínio principal.
-DOMAIN=seu-dominio.com
-# Email para o registro do certificado Let's Encrypt.
-# ACME_EMAIL=seu-email@seu-dominio.com
-# Timezone para os contêineres.
+DOMAIN=juarez.local
+PUID=1000
+PGID=1000
 TZ=America/Sao_Paulo
 
 # --- Configurações do Authentik ---
-# Use o comando 'openssl rand -base64 36' para gerar senhas e chaves seguras.
-AUTHENTIK_SECRET_KEY=GERAR_UMA_CHAVE_SECRETA_FORTE
+# Use 'openssl rand -base64 36' para gerar chaves secretas
+AUTHENTIK_SECRET_KEY=8co8WxUAi7FSKAua4LYNu9ka1FP1yqJ1uN7Q6HowS0pPqN0pZ1
 AUTHENTIK_POSTGRES_USER=authentik
-AUTHENTIK_POSTGRES_PASSWORD=GERAR_UMA_SENHA_SEGURA_PARA_O_DB
+AUTHENTIK_POSTGRES_PASSWORD=senha1234
 AUTHENTIK_POSTGRES_DB=authentik
 
 # --- Configurações do Guacamole ---
 GUACAMOLE_DB_USER=guacamole
-GUACAMOLE_DB_PASSWORD=GERAR_OUTRA_SENHA_SEGURA_PARA_O_DB
+GUACAMOLE_DB_PASSWORD=senha1234
 GUACAMOLE_DB_NAME=guacamole
 
