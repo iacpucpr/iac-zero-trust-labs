@@ -48,6 +48,52 @@ Para uma melhor organização, recomendo a seguinte estrutura de arquivos. Crie 
 |   |   |-- index.html       # Página de exemplo para o Nginx
 
 ======
+Passo a Passo para Gerar Certificados Autoassinados
+
+Para que o Traefik possa servir suas aplicações via HTTPS, ele precisa de um arquivo de certificado e uma chave privada. Siga estes passos no seu terminal, na máquina que roda o Docker.
+
+    Crie um diretório para os certificados:
+    Dentro do seu diretório principal /docker-stack/, crie uma pasta para armazenar os certificados.
+
+    mkdir -p docker-stack/traefik/certs
+
+    Gere o certificado e a chave:
+    Execute o comando openssl abaixo. Ele criará dois arquivos: cert.pem (o certificado público) e key.pem (a chave privada) dentro do diretório traefik/certs.
+
+    Importante: Substitua seu-dominio-local.lab pelo domínio que você usará internamente. Pode ser qualquer nome, mas você deve usá-lo de forma consistente. Você também pode usar o endereço IP da sua máquina Docker se preferir.
+
+    openssl req -x509 -nodes -newkey rsa:4096 \
+      -keyout docker-stack/traefik/certs/key.pem \
+      -out docker-stack/traefik/certs/cert.pem \
+      -sha256 -days 365 \
+      -subj "/CN=seu-dominio-local.lab" \
+      -addext "subjectAltName = DNS:seu-dominio-local.lab"
+
+ou via linha de comando direto
+    openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout seu-dominio.key -out seu-dominio.pem
+
+    chmod 600 seu-dominio.key
+
+    Ajuste seu arquivo hosts local:
+    Para que seu navegador consiga acessar os serviços usando os nomes de domínio (ex: guacamole.seu-dominio-local.lab), você precisa dizer ao seu sistema operacional para onde ele deve apontar.
+
+        Encontre o IP do seu servidor Docker. Se estiver rodando localmente, será 127.0.0.1. Se for outra máquina na sua rede, use o IP dela.
+
+        Edite o arquivo hosts:
+
+            Windows: C:\Windows\System32\drivers\etc\hosts (edite como Administrador).
+
+            Linux/macOS: /etc/hosts (edite com sudo).
+
+        Adicione as seguintes linhas, substituindo 192.168.1.100 pelo IP do seu servidor Docker e seu-dominio-local.lab pelo domínio que você usou no certificado:
+
+    192.168.1.100   traefik.seu-dominio-local.lab
+    192.168.1.100   auth.seu-dominio-local.lab
+    192.168.1.100   guacamole.seu-dominio-local.lab
+    192.168.1.100   nginx.seu-dominio-local.lab
+
+Agora que os certificados estão prontos, vamos atualizar os arquivos de configuração.
+
 
 Como Colocar Tudo Para Rodar
 
