@@ -1,15 +1,22 @@
-# A linha "version" foi removida por ser obsoleta.
-
 services:
   # -------------------- TRAEFIK (REVERSE PROXY) --------------------
   traefik:
     image: traefik:v3.0
     container_name: traefik
-    # Adicionada a seção 'command' para garantir que o arquivo de configuração
-    # e as configurações corretas sejam carregadas, resolvendo o erro do middleware.
+    # Comando explícito com todas as configurações para garantir a inicialização correta
     command:
-      - "--configfile=/etc/traefik/traefik.yml"
       - "--log.level=INFO"
+      - "--api.dashboard=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.network=proxy"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+      # Aponta para o arquivo que agora só contém a definição do TLS
+      - "--providers.file.filename=/etc/traefik/config/dynamic.yml"
+      - "--providers.file.watch=true"
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
@@ -18,13 +25,17 @@ services:
       - "443:443"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      # O nome do arquivo foi alterado para refletir seu propósito
+      - ./traefik/dynamic.yml:/etc/traefik/config/dynamic.yml:ro
       - ./traefik/certs:/certs:ro
     environment:
       - TZ=${TZ}
     networks:
       - proxy
       - nginx-net
+    # Adicionado depends_on para melhorar a ordem de inicialização
+    depends_on:
+      - authentik-server
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.traefik-dashboard.rule=Host(`traefik.${DOMAIN}`)"
@@ -135,7 +146,6 @@ services:
     restart: unless-stopped
     depends_on: [guacd, guacamole-db]
     environment:
-      # Variáveis do Guacamole atualizadas para o novo padrão POSTGRESQL_*
       - GUACD_HOSTNAME=guacd
       - POSTGRESQL_HOSTNAME=guacamole-db
       - POSTGRESQL_DATABASE=${GUACAMOLE_DB_NAME}
@@ -185,3 +195,4 @@ networks:
 volumes:
   authentik-db:
   guacamole-db-data:
+
