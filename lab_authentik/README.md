@@ -48,7 +48,7 @@ Para uma melhor organização, recomendo a seguinte estrutura de arquivos. Crie 
        |   |-- index.html       # Página de exemplo para o Nginx
 
     -- postgres-config/
-       |-- pg_hba.conf/
+       |-- pg_hba.conf
      
 
 Ajustes de permissões
