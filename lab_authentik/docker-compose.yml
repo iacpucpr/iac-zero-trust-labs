@@ -3,7 +3,7 @@ services:
   traefik:
     image: traefik:v3.0
     container_name: traefik
-    user: "0" # Executa como root para garantir a leitura dos certificados
+    user: "0" # Garante a leitura dos certificados
     command:
       - "--log.level=INFO"
       - "--api.dashboard=true"
@@ -30,7 +30,8 @@ services:
       - proxy
       - nginx-net
     depends_on:
-      - authentik-server
+      authentik-server:
+        condition: service_healthy # Espera que o authentik-server esteja saudável
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.traefik-dashboard.rule=Host(`traefik.juarez.local`)"
@@ -47,10 +48,15 @@ services:
     volumes:
       - authentik-db:/var/lib/postgresql/data
     environment:
-      # Valores definidos diretamente para garantir a leitura
       POSTGRES_USER: authentik
-      POSTGRES_PASSWORD: "MUDE_A_SENHA_DO_BD_AUTHENTIK" # Ex: super-segura-123
+      POSTGRES_PASSWORD: "CHANGE_THIS_STRONG_PASSWORD_1"
       POSTGRES_DB: authentik
+    healthcheck: # Verifica se a base de dados está pronta
+      test: ["CMD-SHELL", "pg_isready -d $$POSTGRES_DB -U $$POSTGRES_USER"]
+      start_period: 20s
+      interval: 5s
+      timeout: 5s
+      retries: 5
     networks:
       - authentik-internal
 
@@ -58,6 +64,12 @@ services:
     image: redis:alpine
     container_name: authentik-redis
     restart: unless-stopped
+    healthcheck: # Verifica se o redis está pronto
+      test: ["CMD", "redis-cli", "ping"]
+      start_period: 20s
+      interval: 5s
+      timeout: 5s
+      retries: 5
     networks:
       - authentik-internal
 
@@ -65,16 +77,26 @@ services:
     image: ghcr.io/goauthentik/server:latest
     container_name: authentik-server
     restart: unless-stopped
-    depends_on: [authentik-postgres, authentik-redis]
+    depends_on:
+      authentik-postgres:
+        condition: service_healthy
+      authentik-redis:
+        condition: service_healthy
     command: server
     environment:
-      AUTHENTIK_SECRET_KEY: "MUDE_A_SECRET_KEY_AQUI_PARA_ALGO_LONGO_E_SEGURO"
+      AUTHENTIK_SECRET_KEY: "CHANGE_THIS_VERY_LONG_AND_SECURE_SECRET_KEY"
       AUTHENTIK_POSTGRESQL__HOST: authentik-postgres
       AUTHENTIK_POSTGRESQL__USER: authentik
       AUTHENTIK_POSTGRESQL__NAME: authentik
-      AUTHENTIK_POSTGRESQL__PASSWORD: "MUDE_A_SENHA_DO_BD_AUTHENTIK" # Use a mesma senha definida acima
+      AUTHENTIK_POSTGRESQL__PASSWORD: "CHANGE_THIS_STRONG_PASSWORD_1"
       AUTHENTIK_REDIS__HOST: authentik-redis
       TZ: "America/Sao_Paulo"
+    healthcheck: # Verifica se o authentik-server está pronto
+      test: ["CMD-SHELL", "wget -O /dev/null http://localhost:9000/-/health/live/ || exit 1"]
+      start_period: 20s
+      interval: 5s
+      timeout: 5s
+      retries: 10
     volumes:
       - ./authentik/media:/media
       - ./authentik/templates:/templates
@@ -97,14 +119,16 @@ services:
     container_name: authentik-worker
     user: "0"
     restart: unless-stopped
-    depends_on: [authentik-postgres, authentik-redis]
+    depends_on:
+      authentik-server: # Espera que o servidor principal termine a sua configuração
+        condition: service_healthy
     command: worker
     environment:
-      AUTHENTIK_SECRET_KEY: "MUDE_A_SECRET_KEY_AQUI_PARA_ALGO_LONGO_E_SEGURO" # Use a mesma chave do server
+      AUTHENTIK_SECRET_KEY: "CHANGE_THIS_VERY_LONG_AND_SECURE_SECRET_KEY"
       AUTHENTIK_POSTGRESQL__HOST: authentik-postgres
       AUTHENTIK_POSTGRESQL__USER: authentik
       AUTHENTIK_POSTGRESQL__NAME: authentik
-      AUTHENTIK_POSTGRESQL__PASSWORD: "MUDE_A_SENHA_DO_BD_AUTHENTIK" # Use a mesma senha do server
+      AUTHENTIK_POSTGRESQL__PASSWORD: "CHANGE_THIS_STRONG_PASSWORD_1"
       AUTHENTIK_REDIS__HOST: authentik-redis
       TZ: "America/Sao_Paulo"
     volumes:
@@ -124,8 +148,14 @@ services:
     environment:
       POSTGRES_DB: guacamole
       POSTGRES_USER: guacamole_user
-      POSTGRES_PASSWORD: "MUDE_A_SENHA_DO_BD_GUACAMOLE" # Ex: outra-senha-456
+      POSTGRES_PASSWORD: "CHANGE_THIS_GUACAMOLE_DB_PASSWORD"
       PGDATA: /var/lib/postgresql/data/pgdata
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d $$POSTGRES_DB -U $$POSTGRES_USER"]
+      start_period: 20s
+      interval: 5s
+      timeout: 5s
+      retries: 5
     networks:
       - guacamole-internal
 
@@ -140,13 +170,17 @@ services:
     image: guacamole/guacamole
     container_name: guacamole
     restart: unless-stopped
-    depends_on: [guacd, guacamole-db]
+    depends_on:
+      guacd:
+        condition: service_started
+      guacamole-db:
+        condition: service_healthy
     environment:
       GUACD_HOSTNAME: guacd
       POSTGRESQL_HOSTNAME: guacamole-db
       POSTGRESQL_DATABASE: guacamole
       POSTGRESQL_USER: guacamole_user
-      POSTGRESQL_PASSWORD: "MUDE_A_SENHA_DO_BD_GUACAMOLE" # Use a mesma senha definida acima
+      POSTGRESQL_PASSWORD: "CHANGE_THIS_GUACAMOLE_DB_PASSWORD"
       TZ: "America/Sao_Paulo"
     networks:
       - proxy
