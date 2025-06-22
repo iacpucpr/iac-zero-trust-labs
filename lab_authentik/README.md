@@ -47,6 +47,10 @@ Para uma melhor organização, recomendo a seguinte estrutura de arquivos. Crie 
        |-- html/
        |   |-- index.html       # Página de exemplo para o Nginx
 
+     -- postgres-config/
+       |-- pg_hba.conf/
+     
+
 Ajustes de permissões
         chmod +x ./guacamole/init/initdb.sh
         sudo chmod -R 755 ./traefik/certs
