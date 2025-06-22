@@ -1,0 +1,55 @@
+# /docker-stack/traefik/traefik.yml
+
+# Configurações globais
+global:
+  checkNewVersion: true
+  sendAnonymousUsage: false
+
+# Configuração de logs
+log:
+  level: INFO # Mude para DEBUG para análise de problemas
+
+# Ativa o Dashboard do Traefik (será exposto de forma segura)
+api:
+  dashboard: true
+
+# Pontos de entrada para o tráfego
+entryPoints:
+  # Entrada para tráfego HTTP na porta 80
+  web:
+    address: ":80"
+    http:
+      # Redireciona todo o tráfego de HTTP para HTTPS
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+
+  # Entrada para tráfego HTTPS na porta 443
+  websecure:
+    address: ":443"
+    http:
+      tls:
+        # Usa o resolvedor de certificados 'letsencrypt'
+        certResolver: letsencrypt
+
+# Provedores de configuração (neste caso, Docker)
+providers:
+  docker:
+    endpoint: "unix:///var/run/docker.sock"
+    # Não expõe contêineres por padrão por segurança
+    exposedByDefault: false
+    # Define a rede padrão que o Traefik usará
+    network: proxy
+
+# Configuração do resolvedor de certificados SSL (Let's Encrypt)
+certificatesResolvers:
+  letsencrypt:
+    acme:
+      # Email para notificação (será pego da variável de ambiente)
+      email: ${ACME_EMAIL}
+      # Arquivo para armazenar os certificados
+      storage: "/acme.json"
+      # Usa o desafio HTTP-01 para validar o domínio
+      httpChallenge:
+        entryPoint: web
