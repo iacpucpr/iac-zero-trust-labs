@@ -1,9 +1,11 @@
+# docker-compose.yml (Versão Corrigida e Otimizada)
+
 services:
   # -------------------- TRAEFIK (REVERSE PROXY) --------------------
   traefik:
     image: traefik:v3.0
     container_name: traefik
-    user: "0" # Garante permissões para ler os certificados
+    user: "0"
     command:
       - "--log.level=INFO"
       - "--api.dashboard=true"
@@ -28,7 +30,6 @@ services:
       - ./traefik/certs:/certs:ro
     networks:
       - proxy
-      - nginx-net
     depends_on:
       - authentik-server
     labels:
@@ -46,11 +47,12 @@ services:
     restart: unless-stopped
     volumes:
       - authentik-db:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d
     environment:
-      # CORREÇÃO: Força o PostgreSQL a confiar em ligações da rede interna sem password
       POSTGRES_HOST_AUTH_METHOD: trust
       POSTGRES_USER: authentik
       POSTGRES_DB: authentik
+      POSTGRES_GUACAMOLE_PASSWORD: ${POSTGRES_GUACAMOLE_PASSWORD}
     networks:
       - authentik-internal
 
@@ -71,13 +73,13 @@ services:
       - authentik-redis
     command: worker
     environment:
-      AUTHENTIK_SECRET_KEY: "CHANGE_THIS_VERY_LONG_AND_SECURE_SECRET_KEY"
+      AUTHENTIK_SECRET_KEY: ${AUTHENTIK_SECRET_KEY}
       AUTHENTIK_POSTGRESQL__HOST: authentik-postgres
       AUTHENTIK_POSTGRESQL__USER: authentik
       AUTHENTIK_POSTGRESQL__NAME: authentik
-      AUTHENTIK_POSTGRESQL__PASSWORD: "" # Password não é necessária devido ao 'trust'
+      AUTHENTIK_POSTGRESQL__PASSWORD: ${AUTHENTIK_POSTGRESQL__PASSWORD} # <-- CORRIGIDO: Agora usa a variável do .env
       AUTHENTIK_REDIS__HOST: authentik-redis
-      TZ: "America/Sao_Paulo"
+      TZ: ${TZ}
     volumes:
       - ./authentik/media:/media
       - ./authentik/templates:/templates
@@ -93,13 +95,13 @@ services:
       - authentik-worker
     command: server
     environment:
-      AUTHENTIK_SECRET_KEY: "CHANGE_THIS_VERY_LONG_AND_SECURE_SECRET_KEY"
+      AUTHENTIK_SECRET_KEY: ${AUTHENTIK_SECRET_KEY}
       AUTHENTIK_POSTGRESQL__HOST: authentik-postgres
       AUTHENTIK_POSTGRESQL__USER: authentik
       AUTHENTIK_POSTGRESQL__NAME: authentik
-      AUTHENTIK_POSTGRESQL__PASSWORD: "" # Password não é necessária devido ao 'trust'
+      AUTHENTIK_POSTGRESQL__PASSWORD: ${AUTHENTIK_POSTGRESQL__PASSWORD}
       AUTHENTIK_REDIS__HOST: authentik-redis
-      TZ: "America/Sao_Paulo"
+      TZ: ${TZ}
     volumes:
       - ./authentik/media:/media
       - ./authentik/templates:/templates
@@ -117,69 +119,58 @@ services:
       - "traefik.http.middlewares.authentik.forwardauth.trustForwardHeader=true"
       - "traefik.http.middlewares.authentik.forwardauth.authResponseHeaders=X-authentik-username,X-authentik-groups,X-authentik-email,X-authentik-name"
 
-  # -------------------- GUACAMOLE STACK --------------------
-  guacamole-db:
-    image: postgres:15-alpine
-    container_name: guacamole-db
-    restart: unless-stopped
-    volumes:
-      - guacamole-db-data:/var/lib/postgresql/data
-    environment:
-      POSTGRES_DB: guacamole
-      POSTGRES_USER: guacamole_user
-      POSTGRES_PASSWORD: "CHANGE_THIS_GUACAMOLE_DB_PASSWORD"
-      PGDATA: /var/lib/postgresql/data/pgdata
-    networks:
-      - guacamole-internal
-
+  # -------------------- GUACAMOLE --------------------
   guacd:
-    image: guacamole/guacd
+    image: guacamole/guacd:1.5.5
     container_name: guacd
     restart: unless-stopped
     networks:
-      - guacamole-internal
+      - authentik-internal
+
+  guacamole-init-db:
+    image: guacamole/guacamole:1.5.5
+    entrypoint: ""
+    command: /opt/guacamole/bin/initdb.sh --postgres
+    depends_on:
+      - authentik-postgres
+    environment:
+      POSTGRES_HOSTNAME: authentik-postgres
+      POSTGRES_DATABASE: guacamole_db
+      POSTGRES_USER: guacamole_user
+      POSTGRES_PASSWORD: ${POSTGRES_GUACAMOLE_PASSWORD}
+    networks:
+      - authentik-internal
 
   guacamole:
-    image: guacamole/guacamole
+    image: guacamole/guacamole:1.5.5
     container_name: guacamole
     restart: unless-stopped
     depends_on:
       - guacd
-      - guacamole-db
+      - authentik-postgres
+    volumes:
+      - ./guacamole/extensions:/opt/guacamole/extensions
     environment:
       GUACD_HOSTNAME: guacd
-      POSTGRESQL_HOSTNAME: guacamole-db
-      POSTGRESQL_DATABASE: guacamole
-      POSTGRESQL_USER: guacamole_user
-      POSTGRESQL_PASSWORD: "CHANGE_THIS_GUACAMOLE_DB_PASSWORD"
-      TZ: "America/Sao_Paulo"
+      POSTGRES_HOSTNAME: authentik-postgres
+      POSTGRES_DATABASE: guacamole_db
+      POSTGRES_USER: guacamole_user
+      POSTGRES_PASSWORD: ${POSTGRES_GUACAMOLE_PASSWORD}
+      OIDC_ISSUER: "https://auth.juarez.local/application/o/guacamole/"
+      # --- CORRIGIDO: Segredos agora são lidos do arquivo .env ---
+      OIDC_CLIENT_ID: ${GUACAMOLE_OIDC_CLIENT_ID}
+      OIDC_CLIENT_SECRET: ${GUACAMOLE_OIDC_CLIENT_SECRET}
+      OIDC_REDIRECT_URI: "https://guac.juarez.local/api/ext/oidc/callback"
+      OIDC_USERNAME_CLAIM: "preferred_username"
     networks:
+      - authentik-internal
       - proxy
-      - guacamole-internal
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.guacamole.rule=Host(`guacamole.juarez.local`)"
+      - "traefik.http.routers.guacamole.rule=Host(`guac.juarez.local`)"
       - "traefik.http.routers.guacamole.entrypoints=websecure"
       - "traefik.http.routers.guacamole.tls=true"
       - "traefik.http.services.guacamole.loadbalancer.server.port=8080"
-      - "traefik.http.routers.guacamole.middlewares=authentik@docker"
-
-  # -------------------- NGINX EM REDE SEPARADA --------------------
-  nginx:
-    image: nginx:alpine
-    container_name: nginx-server
-    restart: unless-stopped
-    volumes:
-      - ./nginx/html:/usr/share/nginx/html:ro
-    networks:
-      - nginx-net
-    labels:
-      - "traefik.enable=true"
-      - "traefik.docker.network=nginx-net"
-      - "traefik.http.routers.nginx.rule=Host(`nginx.juarez.local`)"
-      - "traefik.http.routers.nginx.entrypoints=websecure"
-      - "traefik.http.routers.nginx.tls=true"
-      - "traefik.http.services.nginx.loadbalancer.server.port=80"
 
 # -------------------- DEFINIÇÃO DAS REDES E VOLUMES --------------------
 networks:
@@ -187,11 +178,6 @@ networks:
     name: proxy
   authentik-internal:
     internal: true
-  guacamole-internal:
-    internal: true
-  nginx-net:
-    name: nginx-net
 
 volumes:
-  authentik-db:
-  guacamole-db-data:
+  authentik-db
