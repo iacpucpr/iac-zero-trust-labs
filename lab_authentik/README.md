@@ -22,35 +22,59 @@ Pré-requisitos
     Portas 80 e 443 abertas no seu firewall.
 
 Estrutura de Diretórios
+Claro\! Com base em toda a nossa configuração, aqui está a árvore de diretórios final e recomendada para o seu projeto. Esta estrutura organiza os arquivos de configuração, os dados persistentes e os scripts de inicialização de forma lógica e limpa.
 
-Para uma melhor organização, recomendo a seguinte estrutura de arquivos. Crie estes diretórios e arquivos vazios antes de começar:
+```
+/meu-projeto-sso/
+├── docker-compose.yml          # O coração da sua infraestrutura, define todos os serviços.
+├── .env                        # Arquivo para TODOS os seus segredos e senhas.
+│
+├── authentik/                  # Diretório para dados e customizações do Authentik.
+│   ├── geoip/                  # Para dados de geolocalização de IP.
+│   ├── media/                  # Para ícones de aplicativos, logos, etc.
+│   └── templates/              # Para customização de e-mails e páginas.
+│
+├── guacamole/                  # Diretório para configurações e extensões do Guacamole.
+│   └── extensions/             # Onde ficam os plugins de autenticação.
+│       └── guacamole-auth-oidc-1.5.5.jar
+│
+├── postgres/                   # Diretório para scripts de inicialização do PostgreSQL.
+│   └── init/
+│       └── init-guacamole-db.sh  # Script que cria o usuário e DB do Guacamole.
+│
+└── traefik/                    # Diretório para configurações do Traefik.
+    ├── certs/                  # Onde os certificados (autoassinados ou Let's Encrypt) ficam.
+    └── dynamic.yml             # Arquivo de configuração dinâmica do Traefik (TLS, etc).
+```
 
-    /docker-stack/
-    -- .env                     # Arquivo de variáveis de ambiente
-    -- docker-compose.yml       # Nosso arquivo principal
-    
-    -- traefik/
-       |-- dynamic.yml          # Configuração estática do Traefik
-       |-- acme.json            # Arquivo para os certificados SSL (crie vazio)
-    
-    -- authentik/               # Diretórios para dados persistentes
-       |-- media/
-       |-- templates/
-       |-- geoip/
-    
-    -- guacamole/
-       |-- data/
-       |-- init/
-       |   |-- initdb.sh       # Script de inicialização do BD do Guacamole
-    
-    -- nginx/
-       |-- html/
-       |   |-- index.html       # Página de exemplo para o Nginx
+### Legenda e Finalidade de Cada Diretório
 
-    -- postgres-config/
-       |-- pg_hba.conf
+  * **`/meu-projeto-sso/` (Raiz)**
+
+      * É aqui que você executa os comandos `docker-compose`.
+      * **`docker-compose.yml`**: Define todos os contêineres (Traefik, Authentik, Guacamole, Postgres, Redis), suas redes, volumes e configurações.
+      * **`.env`**: Centraliza todas as informações sensíveis (senhas, chaves de API, segredos de OIDC), mantendo seu `docker-compose.yml` limpo e seguro.
+
+  * **`authentik/`**
+
+      * Contém dados que o Authentik precisa que persistam. Ao separar esses dados, você pode atualizar a imagem do Authentik sem perder suas customizações, mídias ou configurações.
+
+  * **`guacamole/`**
+
+      * **`extensions/`**: O ponto mais importante aqui. É o local onde você coloca as extensões (`.jar`) que adicionam funcionalidades ao Guacamole, como a autenticação OIDC que permite a integração com o Authentik.
+
+  * **`postgres/`**
+
+      * **`init/`**: O contêiner oficial do PostgreSQL executa automaticamente qualquer script `.sh` ou `.sql` que esteja nesta pasta na primeira vez que ele é iniciado. Usamos isso para criar de forma automatizada o usuário e o banco de dados secundário para o Guacamole, sem precisar de intervenção manual.
+
+  * **`traefik/`**
+
+      * **`certs/`**: O Traefik precisa de um local para armazenar os certificados TLS que ele usa para prover HTTPS aos seus serviços.
+      * **`dynamic.yml`**: Usado para configurações que o Traefik pode recarregar sem precisar ser reiniciado. É ideal para definir provedores de TLS e outras configurações dinâmicas.
+
+Manter esta estrutura organizada facilita a manutenção, o backup (essencialmente, você só precisa fazer backup desta pasta inteira) e a compreensão de como os diferentes componentes do seu sistema interagem.
+
      
-
 Ajustes de permissões
         chmod +x ./guacamole/init/initdb.sh
         sudo chmod -R 755 ./traefik/certs
