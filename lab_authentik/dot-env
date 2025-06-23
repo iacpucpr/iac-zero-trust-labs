@@ -1,24 +1,17 @@
-# .env (Versão Corrigida e Otimizada)
+# .env (Versão Completa e Corrigida)
 
 # --- Fuso Horário ---
 TZ=America/Sao_Paulo
 
 # --- Senhas para o PostgreSQL ---
-# Senha para o usuário 'authentik' no banco de dados.
 AUTHENTIK_POSTGRESQL__PASSWORD="senha1234"
-
-# Senha para o usuário 'guacamole_user' no banco de dados.
 POSTGRES_GUACAMOLE_PASSWORD="senha1234"
 
 # --- Configuração do Authentik ---
-# Chave secreta interna do Authentik.
 AUTHENTIK_SECRET_KEY="F/ksdrMRccssNWiBbCwMg9aAKnJbups9mBerYOPLGnJKp4Nt"
-
-# Senha de bootstrap para o primeiro acesso do usuário 'akadmin'.
 AUTHENTIK_BOOTSTRAP_PASSWORD="senha1234"
 
 # --- Segredos do Guacamole (OIDC) ---
-# Copie e cole os valores da interface do Authentik aqui.
 GUACAMOLE_OIDC_CLIENT_ID="52jqeh7MvkLeSBkGwILOgOrFJQh3ICpNcLg4bCRt"
 GUACAMOLE_OIDC_CLIENT_SECRET="52uAGjNkMX7ipVsiiuF88yZho2gRI5OvphaeBOyltUfkkvR9zI2hQQfb6yfog6bx7dorHkSWxtdxJ87Vx4zc10kD5hj0jNhtE3UBFifkDbIvRhyKvV6fkB6h6qJXiNX4"
-
+~                                                   
