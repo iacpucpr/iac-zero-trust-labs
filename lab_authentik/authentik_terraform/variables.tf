@@ -39,4 +39,8 @@ variable "authentik_error_reporting_enabled" {
   type        = string
   default     = "true"
 }
-
+variable "pg_password" {
+  description = "A senha para o usuário PostgreSQL (authentik)."
+  type        = string
+  sensitive   = true # Marca como sensível para não aparecer em logs
+}

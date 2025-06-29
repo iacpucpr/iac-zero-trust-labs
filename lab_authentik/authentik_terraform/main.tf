@@ -46,24 +46,25 @@ resource "docker_image" "postgres" {
 resource "docker_container" "postgresql" {
   name  = "authentik_postgresql"
   image = docker_image.postgres.image_id
-  
+
   restart = "unless-stopped"
-  
+
   networks_advanced {
     name = docker_network.authentik_network.name
   }
-  
+
   volumes {
-    volume_name    = docker_volume.database.name
+    # Only specify host_path and container_path for a bind mount
+    host_path      = "${path.cwd}/data/postgresql"
     container_path = "/var/lib/postgresql/data"
   }
-  
+
   env = [
-    "POSTGRES_PASSWORD=${random_password.pg_pass.result}",
+    "POSTGRES_PASSWORD=${var.pg_password}",
     "POSTGRES_USER=${var.pg_user}",
     "POSTGRES_DB=${var.pg_db}",
   ]
-  
+
   healthcheck {
     test     = ["CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}"]
     interval = "30s"
@@ -90,7 +91,7 @@ resource "docker_container" "redis" {
   
   volumes {
     volume_name    = docker_volume.redis.name
-    container_path = "/data"
+    container_path = "/data/redis"
   }
   
   healthcheck {
@@ -143,7 +144,7 @@ resource "docker_container" "authentik_server" {
     "AUTHENTIK_POSTGRESQL__HOST=authentik_postgresql",
     "AUTHENTIK_POSTGRESQL__USER=${var.pg_user}",
     "AUTHENTIK_POSTGRESQL__NAME=${var.pg_db}",
-    "AUTHENTIK_POSTGRESQL__PASSWORD=${random_password.pg_pass.result}",
+    "AUTHENTIK_POSTGRESQL__PASSWORD=${var.pg_password}",
     "AUTHENTIK_ERROR_REPORTING__ENABLED=${var.authentik_error_reporting_enabled}",
   ]
   
@@ -185,14 +186,13 @@ resource "docker_container" "authentik_worker" {
     host_path      = "${path.cwd}/custom-templates"
     container_path = "/templates"
   }
-  
   env = [
     "AUTHENTIK_SECRET_KEY=${random_password.authentik_secret_key.result}",
     "AUTHENTIK_REDIS__HOST=authentik_redis",
     "AUTHENTIK_POSTGRESQL__HOST=authentik_postgresql",
     "AUTHENTIK_POSTGRESQL__USER=${var.pg_user}",
     "AUTHENTIK_POSTGRESQL__NAME=${var.pg_db}",
-    "AUTHENTIK_POSTGRESQL__PASSWORD=${random_password.pg_pass.result}",
+    "AUTHENTIK_POSTGRESQL__PASSWORD=${var.pg_password}",
     "AUTHENTIK_ERROR_REPORTING__ENABLED=${var.authentik_error_reporting_enabled}",
   ]
   
@@ -205,7 +205,7 @@ resource "docker_container" "authentik_worker" {
 # Criar diretórios locais
 resource "null_resource" "create_directories" {
   provisioner "local-exec" {
-    command = "mkdir -p media custom-templates certs"
+    command = "mkdir -p data/postgresql data/redis media custom-templates certs"
   }
   
   triggers = {
