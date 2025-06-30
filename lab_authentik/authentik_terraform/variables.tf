@@ -19,7 +19,7 @@ variable "authentik_image" {
 variable "authentik_tag" {
   description = "Authentik Docker image tag"
   type        = string
-  default     = "2025.6.2"
+  default     = "2025.6.3"
 }
 
 variable "compose_port_http" {
