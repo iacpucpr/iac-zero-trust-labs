@@ -1,0 +1,1 @@
+# Saídas globais do projeto

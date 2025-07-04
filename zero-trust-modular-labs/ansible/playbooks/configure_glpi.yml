@@ -1,0 +1,21 @@
+- name: Configurar e verificar o servidor GLPI
+  hosts: glpi_server
+  become: yes
+
+  tasks:
+    - name: Garantir que o cache do apt está atualizado
+      ansible.builtin.apt:
+        update_cache: yes
+      changed_when: false
+
+    - name: Criar um arquivo para confirmar a execução do Ansible
+      ansible.builtin.copy:
+        content: "Este contêiner foi configurado pelo Ansible em {{ ansible_date_time.iso8601 }}"
+        dest: /var/www/html/glpi/ansible_configured.txt
+        owner: www-data
+        group: www-data
+        mode: '0644'
+
+    - name: Exibir o nome do contêiner GLPI
+      ansible.builtin.debug:
+        msg: "O playbook Ansible foi executado com sucesso no host: {{ inventory_hostname }}"

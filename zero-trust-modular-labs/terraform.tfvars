@@ -1,0 +1,1 @@
+# (Opcional) Para guardar valores das variáveis

@@ -1,0 +1,12 @@
+# Inventário gerado dinamicamente pelo Terraform em: ${timestamp()}
+
+[glpi_server]
+${glpi_name} ansible_host=${glpi_name}
+
+[database_server]
+${mariadb_name} ansible_host=${mariadb_name}
+
+[all:vars]
+# Informa ao Ansible para usar o conector Docker em vez de SSH
+ansible_connection=docker
+ansible_user=root
