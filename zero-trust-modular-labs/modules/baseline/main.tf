@@ -1,3 +1,12 @@
+terraform {
+  required_providers {
+    docker = {
+      source  = "kreuzwerker/docker"
+      version = "~> 3.0.1"
+    }
+  }
+}
+
 # Cria a rede, que será usada por todos
 resource "docker_network" "zt_network" {
   name = var.network_name
@@ -56,13 +65,11 @@ resource "docker_container" "glpi" {
   ]
   
   # A lógica de porta e labels agora é controlada por variáveis de entrada
-  dynamic "ports" {
-    for_each = var.publish_glpi_port ? [80] : []
+ dynamic "labels" {
+    for_each = var.glpi_labels
     content {
-      internal = ports.value
-      external = 8080
+      label = labels.key
+      value = labels.value
     }
   }
-
-  labels = var.glpi_labels
 }

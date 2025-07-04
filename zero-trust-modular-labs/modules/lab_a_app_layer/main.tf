@@ -1,7 +1,11 @@
-#Estes módulos serão mais simples, contendo apenas os contêineres específicos
-#de cada lab (Traefik/Authentik e Twingate). O código interno deles será muito
-#parecido com o que tínhamos no main.tf monolítico, mas agora recebendo o network_name
-#como variável.
+terraform {
+  required_providers {
+    docker = {
+      source  = "kreuzwerker/docker"
+      version = "~> 3.0.1"
+    }
+  }
+}
 
 resource "docker_volume" "authentik_db" {
   name = "authentik_db_vol"
