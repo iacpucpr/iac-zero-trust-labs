@@ -1,0 +1,593 @@
+
+Estrutura Sugerida por Etapas
+
+📁 Etapa 1 – Provisionamento Manual com Dockerfile + docker-compose
+
+lab-zero-trust/
+├── etapa1-docker/
+│   ├── docker-compose.yml
+│   ├── glpi/
+│   │   └── Dockerfile
+│   ├── backup/
+│   │   └── Dockerfile
+│   └── ansible/
+│       └── Dockerfile
+
+📁 Etapa 2 – Provisionamento Automatizado com Terraform
+
+lab-zero-trust/
+├── etapa2-terraform/
+│   ├── main.tf
+│   ├── variables.tf
+│   ├── glpi.tf
+│   ├── mariadb.tf
+│   ├── backup.tf
+│   ├── ansible.tf
+│   └── twingate.tf
+
+📁 Etapa 3 – Configuração e Hardening com Ansible
+
+lab-zero-trust/
+├── etapa3-ansible/
+│   ├── inventory.ini
+│   ├── playbook.yml
+│   └── roles/
+│       ├── glpi-hardening/
+│       └── cert-deploy/
+
+
+✅ Vantagens Pedagógicas
+Etapa	Foco pedagógico	Ferramenta	Benefício
+1. Docker manual	Visualização e base técnica	Dockerfile / Compose	Entendimento prático do que será criado
+2. Terraform	Infraestrutura como Código	Terraform + Docker Provider	Automatização e versionamento do provisionamento
+3. Ansible	Configuração e segurança	Ansible + Checkov	Aplicação de hardening e práticas seguras
+
+✅ Etapa 1 concluída: aqui está o pacote com o provisionamento manual usando Docker Compose + Dockerfiles.
+
+Estrutura do pacote:
+etapa1-docker/
+├── docker-compose.yml         # Define os serviços: mariadb, glpi, backup e ansible
+├── backup/
+│   └── Dockerfile             # Imagem leve com Alpine Linux
+└── ansible/
+    └── Dockerfile             # Imagem com Python + Ansible + SSH
+
+cd etapa1-docker
+docker-compose up -d
+
+O GLPI ficará acessível em: http://localhost:8080
+
+
+✅ Etapa 2 – Provisionamento com Terraform concluída!
+
+etapa2-terraform/
+├── main.tf          # provider Docker + configurações globais
+├── variables.tf     # variáveis de projeto e token Twingate
+├── mariadb.tf       # imagem + container MariaDB
+├── glpi.tf          # imagem + container GLPI
+├── backup.tf        # imagem + container de backup (Alpine)
+├── ansible.tf       # imagem + container Ansible controller
+└── twingate.tf      # (opcional) imagem + container do Twingate Connector
+
+cd etapa2-terraform
+terraform init
+terraform apply -auto-approve
+
+Isso recriará exatamente os mesmos containers definidos no docker-compose, mas agora como Infraestrutura como Código.
+
+
+✅ Etapa 3 – Configuração e Hardening com Ansible concluída!
+
+etapa3-ansible/
+├── inventory.ini
+├── playbook.yml
+└── roles/
+    ├── glpi-hardening/
+    │   └── tasks/main.yml
+    └── cert-deploy/
+        └── tasks/main.yml
+
+O que faz:
+Executa o Checkov antes de aplicar qualquer configuração;
+Aplica hardening básico no servidor GLPI;
+Gera um certificado autoassinado e configura o Apache com HTTPS.
+
+cd etapa3-ansible
+ansible-playbook -i inventory.ini playbook.yml
+
+
+🔐 Visão Reforçada do Papel do Zero Trust com Twingate
+
+O Zero Trust, com apoio do Twingate, muda o foco da proteção do perímetro para a proteção baseada em identidade e contexto, com forte segmentação e visibilidade reduzida.
+
+
+🔐 Revisão: O Papel do Zero Trust com Twingate nas Etapas
+📁 Etapa 1 – Provisionamento Manual com Docker Compose
+Item	Descrição
+Objetivo	Compreensão da arquitetura base (GLPI, MariaDB, Backup, Ansible)
+Zero Trust	Ainda não aplicado diretamente. Essa etapa serve como referência para mostrar a diferença entre ambientes expostos e ambientes protegidos.
+Reflexão de Segurança	O GLPI está acessível publicamente via localhost:8080. Isso simula um ambiente tradicional, com exposição direta dos serviços.
+
+Aprendizado: aqui os alunos percebem a fragilidade do modelo baseado em perímetro (acesso irrestrito via rede local ou redirecionamento de portas).
+
+📁 Etapa 2 – Provisionamento com Terraform
+Item	Descrição
+Objetivo	Automação do ambiente com Terraform
+Zero Trust (parcial)	O Twingate já é introduzido como recurso opcional via twingate.tf. O token pode ser passado como variável.
+Configuração	O twingate.tf provisiona o Connector, que estabelece um túnel de saída e se registra com o Control Plane da conta Twingate do laboratório.
+
+Aprendizado: é aqui que o aluno vê a transição da exposição direta para um modelo de acesso controlado. Mesmo sem o Twingate Client ainda, já se introduz o conceito de segmentação e ausência de portas abertas (inbound-free).
+
+📁 Etapa 3 – Ansible + Checkov + Integração com Twingate
+Item	Descrição
+Objetivo	Aplicar hardening, certificados e validação de segurança
+Zero Trust (completo)	O laboratório pode incluir a instalação do Twingate Client na máquina do aluno ou demonstrar a conexão via identidade gerenciada.
+Acesso via Twingate	O aluno testa o acesso ao GLPI via segmentação ZTNA: só quem está autenticado e autorizado vê o serviço — nem nmap local detecta a porta.
+
+Aprendizado:
+
+Controle baseado em identidade (ex: autenticação com Google Workspace);
+Verificação de contexto (ex: dispositivo, país, MFA);
+Acesso mínimo necessário: o usuário vê apenas o GLPI (nada de banco, backup, etc.).
+
+✅ Conclusão Didática
+Essa progressão permite que o participante:
+
+Etapa	Exposição	Acesso	Governança
+Etapa 1	Total	Aberto (porta local)	Nenhuma
+Etapa 2	Parcial	Automação com Terraform	Rastreável
+Etapa 3	Zero	Controlado por identidade + política	Segmentado e auditável
+
+
+✅ Situação Atual dos Labs
+Etapa	Status	Compatível com Twingate?	Ações Recomendadas
+Etapa 1 (Docker Compose)	OK	✖️ (sem Zero Trust)	Nenhuma ação. Serve como ambiente “aberto” para comparação.
+Etapa 2 (Terraform)	OK	✅ Sim, via twingate.tf	Apenas configurar variável com token do conector
+Etapa 3 (Ansible)	OK	Complementar	Pode ser usado para hardening e (se quiser) para configurar arquivos de log ou validação de conectividade com o domínio Twingate
+
+
+🛠️ Instruções para uso do Twingate (Etapa 2)
+1. 🔐 Obter credenciais no Twingate
+Acesse https://app.twingate.com e:
+
+Crie uma conta ou use uma existente;
+
+Crie uma Rede (Network);
+
+Dentro dela, crie um Connector (ele te dará um token com três partes);
+
+Opcional: crie um Remote Network chamado Lab ou GLPI.
+
+2. ✍️ Atualizar variável twingate_connector_token
+No arquivo etapa2-terraform/variables.tf, adicione o token real:
+
+variable "twingate_connector_token" {
+  description = "Registration token for the Twingate Connector (optional)"
+  type        = string
+  default     = "eyJhbGciOiJIUzI1...parte2.parte3"
+}
+⚠️ Se você quiser manter privado, use o terraform.tfvars ou defina via CLI:
+terraform apply -var="twingate_connector_token=..."
+
+3. ✅ Confirmar conteúdo de twingate.tf
+Já deve estar assim (e está funcional):
+
+resource "docker_image" "twingate_connector" {
+  count = var.twingate_connector_token == "" ? 0 : 1
+  name  = "twingate/connector:latest"
+}
+
+resource "docker_container" "twingate_connector" {
+  count = var.twingate_connector_token == "" ? 0 : 1
+  name  = "${var.project_name}-twingate-connector"
+  image = docker_image.twingate_connector[0].name
+
+  env = [
+    "TWINGATE_ACCESS_TOKEN=${var.twingate_connector_token}"
+  ]
+
+  restart = "unless-stopped"
+}
+4. 🌐 Acesso pelo Client Twingate
+Você (ou os alunos) precisam:
+
+Instalar o Twingate Client (Windows, Mac, Linux ou mobile);
+
+Fazer login com o e-mail usado na conta Twingate;
+
+Se autorizado, o GLPI aparecerá como recurso na interface web ou client;
+
+Ao acessar, você estará no túnel Zero Trust e verá o GLPI — mesmo que as portas estejam bloqueadas na rede local.
+
+5. (Opcional) Definir um recurso no Twingate Web
+No console do Twingate:
+
+Crie um recurso (ex: glpi.lab) com IP do container ou nome resolvível;
+
+Associe esse recurso à Remote Network do conector;
+
+Defina uma policy (grupo de usuários com acesso);
+
+O DNS interno será resolvido via Twingate Client.
+
+📁 Extras para o Ansible (opcional)
+Se quiser tornar isso mais robusto na Etapa 3:
+
+Um script para testar se o conector está ativo (curl https://network.twingate.com)
+
+Hardening extra com firewall no container de GLPI (acesso só via tunel)
+
+Verificação via dig ou ping do hostname de recurso
+
+
+
+Destaques incluídos
+Pasta Conteúdo-chave
+etapa1-docker docker-compose.yml + Dockerfiles (glpi, backup, ansible)
+etapa2-terraform  main.tf, variables.tf, mariadb.tf, glpi.tf, backup.tf, ansible.tf, twingate.tf (com abspath()), db_data/
+etapa3-ansible  inventory.ini (plugin community.docker.docker), playbook.yml (Checkov, hardening, HTTPS, verificação Twingate), roles glpi-hardening e cert-deploy
+README.md Instruções específicas dentro de cada etapa
+
+Lembre-se: na Etapa 3, antes de rodar o playbook, instale a collection Docker atual:
+
+bash
+Copiar
+Editar
+ansible-galaxy collection install community.docker
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+🔁 Fluxo de Execução Sugerido (Didático e Incremental)
+✅ Etapa 1 – Provisionamento Manual com Docker Compose
+Objetivo: Compreender a composição dos serviços manualmente e testar a integração GLPI + MariaDB + backup.
+
+Comandos:
+
+bash
+Copiar
+Editar
+cd etapa1-docker
+docker-compose up -d
+O que observar:
+
+Acesso ao GLPI: http://localhost:8080
+
+Banco MariaDB funcionando
+
+Containers independentes e estáveis
+
+✅ Opcional: destrua tudo para liberar recursos e testar os próximos métodos:
+
+bash
+Copiar
+Editar
+docker-compose down -v
+
+
+
+✅ Etapa 2 – Provisionamento Automatizado com Terraform
+Objetivo: Demonstrar como transformar o provisionamento manual em código (IaC).
+
+Pré-requisitos:
+
+Docker ativo
+
+Terraform instalado
+
+Comandos:
+
+bash
+Copiar
+Editar
+cd etapa2-terraform
+terraform init
+terraform apply -auto-approve
+Extras:
+
+Pode editar o arquivo variables.tf se quiser injetar token do Twingate.
+
+O Terraform criará todos os containers, inclusive o de Ansible apontando para a Etapa 3.
+
+🔧 Se quiser resetar:
+
+bash
+Copiar
+Editar
+terraform destroy -auto-approve
+
+
+
+
+✅ Etapa 3 – Hardening e Validação com Ansible
+Objetivo: Aplicar segurança no GLPI e validar com Checkov a infraestrutura.
+
+Pré-requisitos:
+
+Containers criados pela Etapa 2 devem estar rodando
+
+Ansible instalado
+
+Collection Docker instalada:
+
+bash
+Copiar
+Editar
+ansible-galaxy collection install community.docker
+Comando principal:
+
+bash
+Copiar
+Editar
+cd etapa3-ansible
+ansible-playbook -i inventory.ini playbook.yml
+O que será feito:
+
+Verificação com Checkov nos arquivos do Terraform
+
+Aplicação de hardening no GLPI (ex: desativar root via SSH)
+
+Geração de certificado HTTPS (autoassinado)
+
+Verificação do Twingate Connector
+
+
+
+
+📌 Recomendações Finais
+🔄 Você não precisa destruir os containers da Etapa 1 se quiser apenas observar diferenças manuais × automatizadas.
+
+✅ Sugestão para ensino: executar todas as etapas sequencialmente e comparar os outputs (tempo, segurança, esforço).
+
+🧪 Desafio para alunos: modificar parâmetros do Terraform ou dos playbooks para simular cenários com falhas.
+
+Se quiser, posso gerar um fluxograma visual ou incluir esse passo a passo no README.md geral também. Deseja?
+
+
+
+
+
+README (Visão Geral do Fluxo)
+markdown
+Copiar
+Editar
+# Guia Rápido – Fluxo de Execução dos Labs Zero Trust
+
+> Siga as etapas na ordem. As destruições (clean-ups) são opcionais, mas ajudam a comparar
+> o esforço manual × automatizado × seguro.
+
+| Ordem | Etapa | Comandos-chave | Objetivo | Observações |
+|-------|-------|---------------|----------|-------------|
+| 1 | **Etapa 1 – Docker Compose** | `docker-compose up -d` | Ver serviços expostos manualmente (GLPI em http://localhost:8080) | Para reset: `docker-compose down -v` |
+| 2 | **Etapa 2 – Terraform** | `terraform init`<br>`terraform apply -auto-approve` | Provisionar a mesma infra como código (IaC) | Passe `twingate_connector_token` via CLI ou `terraform.tfvars` |
+| 2a | (Opc.) **Destroy** | `terraform destroy -auto-approve` | Comparar tempo de destruição vs. manual | — |
+| 3 | **Etapa 3 – Ansible + Checkov** | `ansible-playbook -i inventory.ini playbook.yml` | Hardening, HTTPS e validação de segurança | Requer `community.docker` collection |
+| 4 | **Twingate (ZTNA)** | Cliente Twingate + login | Acesso segmentado (Zero Trust) | Recurso criado no console (ex.: glpi.lab) |
+
+### Passo a passo resumido
+
+```bash
+# Etapa 1
+cd etapa1-docker
+docker-compose up -d
+
+# (Opcional reset)
+docker-compose down -v
+
+# Etapa 2
+cd ../etapa2-terraform
+terraform init
+terraform apply -auto-approve \
+  -var="twingate_connector_token=SEU_TOKEN_AQUI"
+
+# Etapa 3
+cd ../etapa3-ansible
+ansible-galaxy collection install community.docker
+ansible-playbook -i inventory.ini playbook.yml
+O que observar
+Etapa 1: GLPI acessível publicamente → rede exposta.
+
+Etapa 2: Sem portas de entrada; containers via IaC; Connector Twingate online.
+
+Etapa 3: GLPI reforçado (hardening + HTTPS); Checkov bloqueia configurações inseguras; Twingate garante acesso mínimo.
+
+Limpeza final:
+
+bash
+Copiar
+Editar
+cd etapa2-terraform && terraform destroy -auto-approve
+cd ../etapa1-docker && docker-compose down -v
+perl
+Copiar
+Editar
+
+Basta copiar o README acima para o arquivo `README.md` principal ou incluí-lo como anexo para os estudantes. O fluxograma em PNG (`fluxograma_labs.png`) pode ser adicionado ao repositório ou aos slides do minicurso.
+
+Qualquer ajuste extra ou versão em PDF, é só avisar! ​:contentReference[oaicite:0]{index=0}​
+
+
+
+
+
+
+
+Dito por si:
+poderia colocar alguma outra prática nesse contexto que seria interessante? Como exemplo, tirar o 8080 do GLPI para HTTPS com certificado?
+
+
+Dito pelo ChatGPT:
+Excelente sugestão! Transformar o acesso ao GLPI de http://localhost:8080 para HTTPS verdadeiro, com certificado válido (mesmo que autoassinado), é uma prática muito relevante no contexto de Zero Trust e hardening de aplicações.
+
+Aqui vão duas práticas complementares que você pode incorporar ao laboratório:
+
+🔐 Prática Adicional 1: Configurar acesso ao GLPI via HTTPS
+Objetivo:
+Remover a exposição em HTTP (:8080) e servir o GLPI via HTTPS na porta 443, com certificado TLS gerado e instalado automaticamente via Ansible.
+
+Etapas:
+
+✅ No Dockerfile do GLPI:
+
+Instalar apache2 + openssl
+
+Criar virtual host para :443
+
+✅ No Role cert-deploy (Ansible):
+
+Gerar certificado autoassinado (com openssl)
+
+Copiar chave + certificado para /etc/ssl/
+
+Ativar o site HTTPS com a2enmod ssl + a2ensite default-ssl
+
+✅ No playbook.yml:
+
+Task para verificar se a porta 8080 está aberta (e fechar via iptables ou firewall)
+
+Task para garantir que apenas 443 está acessível
+
+✅ Validação do acesso via navegador:
+
+GLPI deve estar disponível em https://localhost (ou IP local)
+
+Ignorar aviso de certificado no navegador se autoassinado
+
+🔍 Prática Adicional 2: Auditar e reduzir a superfície de ataque com netstat + ufw
+Objetivo:
+Ensinar o estudante a observar serviços expostos e aplicar segmentação no nível de rede, como parte de um princípio Zero Trust.
+
+Etapas:
+
+✅ Rodar netstat -tuln no container GLPI
+
+✅ Criar uma role Ansible chamada glpi-firewall
+
+Usar ufw para permitir apenas 443/tcp
+
+Bloquear 22, 80, 3306, etc.
+
+✅ Mostrar impacto ao tentar escanear a rede com nmap
+
+✨ Ganhos Didáticos:
+Prática Habilidade Desenvolvida Relacionamento com Zero Trust
+HTTPS no GLPI Criação e uso de certificados, segurança de transporte  Segurança de dados em trânsito, evitar sniffing
+Firewall (UFW)  Controle de tráfego por porta e protocolo Redução da superfície de ataque
+Remover HTTP  Validação de hardening  Elimina vias alternativas de acesso não autorizado
+Certificados via Ansible  Automação de TLS/SSL  Confiança revalidada com código
+
+📁 Estrutura sugerida para os roles
+arduino
+Copiar
+Editar
+etapa3-ansible/
+└── roles/
+    ├── cert-deploy/
+    │   └── tasks/
+    │       └── main.yml  # Geração do certificado, configuração do Apache
+    └── glpi-firewall/
+        └── tasks/
+            └── main.yml  # UFW: permitir 443, negar resto
+
+
+            ✅ As novas práticas foram adicionadas com sucesso ao laboratório da Etapa 3 (Ansible). Agora você tem:
+
+📁 etapa3-ansible/roles/
+
+bash
+Copiar
+Editar
+├── cert-deploy/
+│   └── tasks/
+│       └── main.yml       # Geração de certificado SSL e configuração do Apache
+├── glpi-firewall/
+│   └── tasks/
+│       └── main.yml       # Aplicação de regras UFW para expor apenas HTTPS
+📘 O que foi incluído:
+🔐 cert-deploy
+Instala Apache + OpenSSL
+
+Gera certificado autoassinado via módulo openssl_certificate
+
+Habilita HTTPS (443)
+
+Remove Listen 80 do Apache
+
+Reinicia o serviço
+
+🔥 glpi-firewall
+Instala ufw
+
+Permite apenas 443/tcp
+
+Bloqueia o restante por padrão (policy: deny)
+
+🧪 Como usar no playbook.yml principal:
+Adicione as novas roles na seção apropriada:
+
+yaml
+Copiar
+Editar
+- name: Aplicar hardening e configurar HTTPS no GLPI
+  hosts: lab-zero-trust-glpi
+  become: yes
+  roles:
+    - glpi-hardening
+    - cert-deploy
+    - glpi-firewall
+
+
+
+    ✅ O que este pacote contém:
+1. etapa1-docker/
+
+docker-compose.yml e Dockerfile para GLPI, Backup e Ansible (provisionamento manual)
+
+2. etapa2-terraform/
+
+Arquivos .tf para infraestrutura como código:
+
+glpi.tf, mariadb.tf, backup.tf, ansible.tf, twingate.tf
+
+Uso de abspath() corrigido para caminhos locais
+
+Inclui o diretório db_data/ para volume persistente
+
+3. etapa3-ansible/
+
+inventory.ini com host lab-zero-trust-glpi
+
+playbook.yml completo com:
+
+Verificação Checkov
+
+Hardening básico
+
+Configuração HTTPS com certificado autoassinado
+
+Aplicação de regras de firewall com UFW
+
+Roles:
+
+glpi-hardening/
+
+cert-deploy/
+
+glpi-firewall/
+
+4. README.md em cada etapa
+
+Comandos, objetivos e instruções específicas
+
+Fluxo de execução claro, para uso por estudantes

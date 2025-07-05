@@ -1,0 +1,44 @@
+version: "3.8"
+services:
+  mariadb:
+    image: mariadb:10.11
+    container_name: lab-zero-trust-mariadb
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: secret
+      MYSQL_DATABASE: glpidb
+      MYSQL_USER: glpi
+      MYSQL_PASSWORD: glpipass
+    volumes:
+      - db_data:/var/lib/mysql
+
+  glpi:
+    image: diouxx/glpi
+    container_name: lab-zero-trust-glpi
+    depends_on:
+      - mariadb
+    environment:
+      DB_HOST: mariadb
+      DB_USER: glpi
+      DB_PASSWORD: glpipass
+      DB_NAME: glpidb
+    ports:
+      - "8080:80"
+    restart: unless-stopped
+
+  backup:
+    build:
+      context: ./backup
+    container_name: lab-zero-trust-backup
+    command: ["sleep", "infinity"]
+
+  ansible:
+    build:
+      context: ./ansible
+    container_name: lab-zero-trust-ansible
+    volumes:
+      - ../etapa3-ansible:/ansible
+    command: ["sleep", "infinity"]
+
+volumes:
+  db_data:
