@@ -1,0 +1,22 @@
+- name: Atualizar cache de pacotes
+  ansible.builtin.apt:
+    update_cache: yes
+  when: ansible_os_family == "Debian"
+
+- name: Desabilitar root no SSH
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^PermitRootLogin'
+    line: 'PermitRootLogin no'
+  notify: Reiniciar SSH
+  when: ansible_os_family == "Debian"
+
+- name: Parar serviços desnecessários
+  ansible.builtin.service:
+    name: "{{ item }}"
+    state: stopped
+    enabled: false
+  loop:
+    - telnet
+    - ftp
+  ignore_errors: yes

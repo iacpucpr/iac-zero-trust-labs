@@ -1,0 +1,40 @@
+---
+- name: Rodar Checkov na pasta Terraform
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Executar Checkov
+      command: checkov -d ../etapa2-terraform
+      register: checkov_out
+      changed_when: false
+    - name: Falhar se houver falhas críticas
+      fail:
+        msg: "Falhas críticas encontradas pelo Checkov"
+      when: "'FAILED CHECKS' in checkov_out.stdout"
+
+- name: Hardening e HTTPS no GLPI
+  hosts: glpi
+  become: true
+  roles:
+    - glpi-hardening
+    - cert-deploy
+
+- name: Verificar Twingate Connector
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Obter container do connector
+      command: docker ps --filter name=twingate-connector --format "{{.Names}}"
+      register: tg
+      changed_when: false
+    - name: Falhar se não estiver rodando
+      fail:
+        msg: "Connector Twingate não encontrado"
+      when: tg.stdout == ""
+    - name: Testar conexão ao Control Plane
+      command: docker exec {{ tg.stdout }} curl -s -o /dev/null -w "%{http_code}" https://network.twingate.com
+      register: http
+      changed_when: false
+    - fail:
+        msg: "Connector sem acesso ao Control Plane (HTTP {{ http.stdout }})"
+      when: http.stdout != "200"

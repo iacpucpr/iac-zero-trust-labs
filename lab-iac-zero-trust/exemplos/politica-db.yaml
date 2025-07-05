@@ -1,0 +1,18 @@
+
+# Política Zero Trust para o Banco de Dados de Produção
+policy_name: "db-prod-access"
+description: "Controla o acesso ao banco de dados principal."
+
+resources:
+  - "database.prod.internal"
+
+principals:
+  - group: "database_admins"
+  - user: "service_account_backup@example.com"
+
+conditions:
+  - device_posture: "compliant"
+  - mfa: "required"
+  - location: "BR"
+
+action: "allow"
