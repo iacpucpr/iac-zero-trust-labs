@@ -9,13 +9,3 @@ variable "twingate_connector_token" {
   type        = string
   default     = ""
 }
-variable "twingate_login" {
-  description = "Twingate Login NAME.twingate.com"
-  type = string
-  default  = "iacpucpr"
-}
-variable "twingate_api-token" {
-  description = "Twingate API-TOKEN provided by twingate"
-  type = string
-  default  = "TOKEN"
-}
